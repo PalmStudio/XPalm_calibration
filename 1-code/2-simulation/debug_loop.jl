@@ -1,5 +1,9 @@
 using DataFrames, Dates, CSV, Statistics, Plots
 
+#there is a ftsw problem in the towe_meteo_cleaned, here we want to find the problem
+
+#Try to put the smse meteo data to the missing value of the towe because in the period after 2022 the towe climate is m
+
 # Ensure date columns are Date type
 select_pred_towe.date = Date.(select_pred_towe.date)
 select_pred_smse.date = Date.(select_pred_smse.date)

@@ -1,7 +1,7 @@
 using YAML, CSV, DataFrames, Dates, CairoMakie, AlgebraOfGraphics
 using GLM, StatsBase, Statistics
 
-csv_pred_towe = CSV.read("xpalm_introduction/0-data/all_meteo_predictions_towe.csv",
+csv_pred_towe = CSV.read("0-data/all_meteo_predictions_towe.csv",
     DataFrame,
     missingstring=["NA", "NaN"]
 )
@@ -130,4 +130,5 @@ CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned2.csv", select_pred_to
 CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned3.csv", select_pred_towe, delim=";") #the TMax modified from smse
 CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned4.csv", select_pred_towe, delim=";")
 CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned.csv", select_pred_towe, delim=";")
+
 
