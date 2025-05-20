@@ -83,25 +83,24 @@ avg_wind = mean(skipmissing(select_pred_towe.Wind))
 
 # Replace missing values of Wind with their respective averages and 0.0 with 1e-6
 select_pred_towe.Wind = coalesce.(select_pred_towe.Wind, avg_wind)
-select_pred_towe.Wind[select_pred_towe.Wind .== 0.0] .= 1e-6
+select_pred_towe.Wind[select_pred_towe.Wind.==0.0] .= 1e-6
 any(select_pred_towe.Wind .== 0.0)
 
 
 
-#try to filled in the missing value preiod with the wind from other sites (smse)
-using DataFrames, Dates
+# #try to filled in the missing value preiod with the wind from other sites (smse)
+# using DataFrames, Dates
 
-# 1. Convert date strings to Date type (if not already)
-select_pred_towe.date = Date.(select_pred_towe.date)
-select_pred_smse.date = Date.(select_pred_smse.date)
+# # 1. Convert date strings to Date type (if not already)
+# select_pred_towe.date = Date.(select_pred_towe.date)
 
-# 2. Filter smse to the target date range
-filtered_smse = filter(row -> row.date ≥ Date("2012-01-02") && row.date ≤ Date("2023-06-20"), select_pred_smse)
+# # 2. Filter smse to the target date range
+# filtered_smse = filter(row -> row.date ≥ Date("2012-01-02") && row.date ≤ Date("2023-06-20"), select_pred_towe)
 
-# 3. Create a Dict of Date => Wind from smse
-wind_dict = Dict(row.date => row.Wind for row in eachrow(filtered_smse)) #trial 1
-Tmax_dict = Dict(row.date => row.Tmax for row in eachrow(filtered_smse)) #trial 2
-Rg_dict = Dict(row.date => row.Rg for row in eachrow(filtered_smse)) #trial 3
+# # 3. Create a Dict of Date => Wind from smse
+# wind_dict = Dict(row.date => row.Wind for row in eachrow(filtered_smse)) #trial 1
+# Tmax_dict = Dict(row.date => row.Tmax for row in eachrow(filtered_smse)) #trial 2
+# Rg_dict = Dict(row.date => row.Rg for row in eachrow(filtered_smse)) #trial 3
 
 
 # 4. Overwrite in towe using the dictionary
@@ -126,9 +125,6 @@ describe(select_pred_towe) #wow its works well
 select_pred_towe = rename(select_pred_towe, :TAverage => :T, :HRAverage => :Rh)
 
 #create the csv file
-CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned2.csv", select_pred_towe, delim=";") #the wind modified from smse
-CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned3.csv", select_pred_towe, delim=";") #the TMax modified from smse
-CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned4.csv", select_pred_towe, delim=";")
-CSV.write("xpalm_introduction/2-results/meteo_towe_cleaned.csv", select_pred_towe, delim=";")
+CSV.write("2-results/meteo_towe_cleaned.csv", select_pred_towe, delim=";") #the wind modified from smse
 
 
