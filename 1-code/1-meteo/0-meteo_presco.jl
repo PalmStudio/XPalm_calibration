@@ -1,7 +1,7 @@
 using YAML, CSV, DataFrames, Dates, CairoMakie, AlgebraOfGraphics
 using GLM, StatsBase, Statistics
 
-csv_pred_presco = CSV.read("xpalm_introduction/0-data/all_meteo_predictions_presco.csv",
+csv_pred_presco = CSV.read("0-data/all_meteo_predictions_presco.csv",
     DataFrame,
     missingstring=["NA", "NaN"]
 )
@@ -83,11 +83,11 @@ select_pred_presco.Wind[select_pred_presco.Wind .== 0.0] .= 1e-6
 any(select_pred_presco.Wind .== 0.0)
 
 # Check summary after imputation
-describe(select_pred_presco) #wow its works well
+describe(select_pred_presco) 
 
 #rename TAverage and HRAverage to T and Rh
 select_pred_presco = rename(select_pred_presco, :TAverage => :T, :HRAverage => :Rh)
 
 #create the csv file
-CSV.write("xpalm_introduction/2-results/meteo_presco_cleaned.csv", select_pred_presco, delim=";")
+CSV.write("2-results/meteo_presco_cleaned.csv", select_pred_presco, delim=";")
 
