@@ -18,10 +18,13 @@ meteo_nursery = DataFrame(
     Precipitations=mean(meteo_smse.Precipitations,),
     Ri_PAR_f=mean(meteo_smse.Ri_PAR_f,),
     Rg=mean(meteo_smse.Rg,),
+    T=mean(meteo_smse.T,),
+    Rh=mean(meteo_smse.Rh,),
 )
 
 nursery_days = Int(round(1.5 * 365))  # 548
 meteo_nursery = repeat(meteo_nursery, nursery_days)
+meteo_nursery.period = fill("Nursery", nrow(meteo_nursery))
 CSV.write("2-results/meteo_nursery.csv", meteo_nursery)
 
 #2. Identify the planting date
@@ -32,6 +35,10 @@ planting_towe = Date("2012-06-01")
 df_planting_smse = filter(r -> r.date >= planting_smse, meteo_smse)
 df_planting_presco = filter(r -> r.date >= planting_presco, meteo_presco)
 df_planting_towe = filter(r -> r.date >= planting_towe, meteo_towe)
+
+df_planting_smse.period = fill("Planting", nrow(df_planting_smse))
+df_planting_presco.period = fill("Planting", nrow(df_planting_presco))
+df_planting_towe.period = fill("Planting", nrow(df_planting_towe))
 
 #3. meteo nursery + planting 
 
