@@ -37,8 +37,6 @@ mod_smse_Precipitation = lm(@formula(Precipitations ~ Rainfall_pred), select_pre
 mod_smse_Rg = lm(@formula(Rg ~ Rg_pred), select_pred_smse)
 mod_smse_Ri_PAR_f = lm(@formula(Ri_PAR_f ~ Ri_PAR_pred), select_pred_smse)
 
-
-
 # Predict each rows 
 select_pred_smse.Tmax_pred = coef(mod_smse_Tmax)[1] .+ coef(mod_smse_Tmax)[2] .* select_pred_smse.TAverage_pred
 select_pred_smse.Tmin_pred = coef(mod_smse_Tmin)[1] .+ coef(mod_smse_Tmin)[2] .* select_pred_smse.TAverage_pred
@@ -72,6 +70,7 @@ any(select_pred_smse.Wind .== 0.0)
 
 #replace the too fluctuated value with the average value 
 select_pred_smse.Rg[select_pred_smse.Rg .> 30] .= mean(skipmissing(select_pred_smse.Rg))
+select_pred_smse.Tmin[select_pred_smse.Tmin .> 30] .= mean(skipmissing(select_pred_smse.Tmin))
 
 # Plotting the temperature:
 # Make a function to plot the data:
