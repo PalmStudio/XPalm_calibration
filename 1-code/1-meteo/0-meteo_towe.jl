@@ -36,8 +36,6 @@ mod_towe_Precipitation = lm(@formula(Precipitations ~ Rainfall_pred), select_pre
 mod_towe_Rg = lm(@formula(Rg ~ Rg_pred), select_pred_towe)
 mod_towe_Ri_PAR_f = lm(@formula(Ri_PAR_f ~ Ri_PAR_pred), select_pred_towe)
 
-
-
 # Predict each rows 
 select_pred_towe.Tmax_pred = coef(mod_towe_Tmax)[1] .+ coef(mod_towe_Tmax)[2] .* select_pred_towe.TAverage_pred
 select_pred_towe.Tmin_pred = coef(mod_towe_Tmin)[1] .+ coef(mod_towe_Tmin)[2] .* select_pred_towe.TAverage_pred
@@ -61,6 +59,18 @@ select_pred_towe.Precipitations = coalesce.(select_pred_towe.Precipitations, sel
 select_pred_towe.Rg = coalesce.(select_pred_towe.Rg, select_pred_towe.Rg_pred, mean(skipmissing(select_pred_towe.Rg)))
 select_pred_towe.Ri_PAR_f = coalesce.(select_pred_towe.Ri_PAR_f, select_pred_towe.Ri_PAR_pred, mean(skipmissing(select_pred_towe.Ri_PAR_f)))
 
+#exception for wind and Ri_PAR_f since they are not predicted
+avg_wind = mean(skipmissing(select_pred_towe.Wind))
+
+# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
+select_pred_towe.Wind = coalesce.(select_pred_towe.Wind, avg_wind)
+select_pred_towe.Wind[select_pred_towe.Wind .== 0.0] .= 1e-6
+any(select_pred_towe.Wind .== 0.0)
+
+#replace the too fluctuated value with the average value 
+select_pred_towe.Wind[select_pred_towe.Wind .> 5] .= avg_wind
+select_pred_towe.Rg[select_pred_towe.Rg .> 30] .= mean(skipmissing(select_pred_towe.Rg))
+
 # Plotting the temperature:
 # Make a function to plot the data:
 function plot_meteo(df, variables, title)
@@ -73,14 +83,6 @@ end
 plot_meteo(select_pred_towe, [:Tmax, :Tmin, :TAverage], "Temperature towe") #plot the data
 plot_meteo(select_pred_towe, [:Rh_min, :Rh_max], "Humidity towe") #plot the data
 plot_meteo(select_pred_towe, [:Precipitations], "Rainfall towe") #plot the data
-
-#exception for wind and Ri_PAR_f since they are not predicted
-avg_wind = mean(skipmissing(select_pred_towe.Wind))
-
-# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
-select_pred_towe.Wind = coalesce.(select_pred_towe.Wind, avg_wind)
-select_pred_towe.Wind[select_pred_towe.Wind .== 0.0] .= 1e-6
-any(select_pred_towe.Wind .== 0.0)
 
 # Check summary after imputation
 describe(select_pred_towe) 

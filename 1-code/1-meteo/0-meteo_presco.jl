@@ -36,8 +36,6 @@ mod_presco_Precipitation = lm(@formula(Precipitations ~ Rainfall_pred), select_p
 mod_presco_Rg = lm(@formula(Rg ~ Rg_pred), select_pred_presco)
 mod_presco_Ri_PAR_f = lm(@formula(Ri_PAR_f ~ Ri_PAR_pred), select_pred_presco)
 
-
-
 # Predict each rows 
 select_pred_presco.Tmax_pred = coef(mod_presco_Tmax)[1] .+ coef(mod_presco_Tmax)[2] .* select_pred_presco.TAverage_pred
 select_pred_presco.Tmin_pred = coef(mod_presco_Tmin)[1] .+ coef(mod_presco_Tmin)[2] .* select_pred_presco.TAverage_pred
@@ -61,6 +59,19 @@ select_pred_presco.Precipitations = coalesce.(select_pred_presco.Precipitations,
 select_pred_presco.Rg = coalesce.(select_pred_presco.Rg, select_pred_presco.Rg_pred, mean(skipmissing(select_pred_presco.Rg)))
 select_pred_presco.Ri_PAR_f = coalesce.(select_pred_presco.Ri_PAR_f, select_pred_presco.Ri_PAR_pred, mean(skipmissing(select_pred_presco.Ri_PAR_f)))
 
+#replace the too fluctuated value with the average value 
+select_pred_presco.Precipitations[select_pred_presco.Precipitations .> 200] .= mean(skipmissing(select_pred_presco.Precipitations))
+select_pred_presco.TAverage[select_pred_presco.TAverage .< 18] .= mean(skipmissing(select_pred_presco.TAverage))
+select_pred_presco.Tmax[select_pred_presco.Tmax .< 18] .= mean(skipmissing(select_pred_presco.Tmax))
+
+#exception for wind and Ri_PAR_f since they are not predicted
+avg_wind = mean(skipmissing(select_pred_presco.Wind))
+
+# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
+select_pred_presco.Wind = coalesce.(select_pred_presco.Wind, avg_wind)
+select_pred_presco.Wind[select_pred_presco.Wind .== 0.0] .= 1e-6
+any(select_pred_presco.Wind .== 0.0)
+
 # Plotting the temperature:
 # Make a function to plot the data:
 function plot_meteo(df, variables, title)
@@ -74,13 +85,6 @@ plot_meteo(select_pred_presco, [:Tmax, :Tmin, :TAverage], "Temperature presco") 
 plot_meteo(select_pred_presco, [:Rh_min, :Rh_max], "Humidity presco") #plot the data
 plot_meteo(select_pred_presco, [:Precipitations], "Rainfall presco") #plot the data
 
-#exception for wind and Ri_PAR_f since they are not predicted
-avg_wind = mean(skipmissing(select_pred_presco.Wind))
-
-# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
-select_pred_presco.Wind = coalesce.(select_pred_presco.Wind, avg_wind)
-select_pred_presco.Wind[select_pred_presco.Wind .== 0.0] .= 1e-6
-any(select_pred_presco.Wind .== 0.0)
 
 # Check summary after imputation
 describe(select_pred_presco) 

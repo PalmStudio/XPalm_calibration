@@ -1,7 +1,7 @@
 using YAML, CSV, DataFrames, Dates, CairoMakie, AlgebraOfGraphics
 using GLM, StatsBase, Statistics
 
-csv_pred_smse = CSV.read("xpalm_introduction/0-data/all_meteo_predictions_smse.csv",
+csv_pred_smse = CSV.read("0-data/all_meteo_predictions_smse.csv",
     DataFrame,
     missingstring=["NA", "NaN"]
 )
@@ -62,6 +62,17 @@ select_pred_smse.Precipitations = coalesce.(select_pred_smse.Precipitations, sel
 select_pred_smse.Rg = coalesce.(select_pred_smse.Rg, select_pred_smse.Rg_pred, mean(skipmissing(select_pred_smse.Rg)))
 select_pred_smse.Ri_PAR_f = coalesce.(select_pred_smse.Ri_PAR_f, select_pred_smse.Ri_PAR_pred, mean(skipmissing(select_pred_smse.Ri_PAR_f)))
 
+#exception for wind and Ri_PAR_f since they are not predicted
+avg_wind = mean(skipmissing(select_pred_smse.Wind))
+
+# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
+select_pred_smse.Wind = coalesce.(select_pred_smse.Wind, avg_wind)
+select_pred_smse.Wind[select_pred_smse.Wind .== 0.0] .= 1e-6
+any(select_pred_smse.Wind .== 0.0)
+
+#replace the too fluctuated value with the average value 
+select_pred_smse.Rg[select_pred_smse.Rg .> 30] .= mean(skipmissing(select_pred_smse.Rg))
+
 # Plotting the temperature:
 # Make a function to plot the data:
 function plot_meteo(df, variables, title)
@@ -75,25 +86,17 @@ plot_meteo(select_pred_smse, [:Tmax, :Tmin, :TAverage], "Temperature smse") #plo
 plot_meteo(select_pred_smse, [:Rh_min, :Rh_max], "Humidity smse") #plot the data
 plot_meteo(select_pred_smse, [:Precipitations], "Rainfall smse") #plot the data
 
-#exception for wind and Ri_PAR_f since they are not predicted
-avg_wind = mean(skipmissing(select_pred_smse.Wind))
-
-# Replace missing values of Wind with their respective averages and 0.0 with 1e-6
-select_pred_smse.Wind = coalesce.(select_pred_smse.Wind, avg_wind)
-select_pred_smse.Wind[select_pred_smse.Wind .== 0.0] .= 1e-6
-any(select_pred_smse.Wind .== 0.0)
-
 
 # Check summary after imputation
-describe(select_pred_smse) #wow its works well
+describe(select_pred_smse) 
 
 #rename TAverage and HRAverage to T and Rh
 select_pred_smse = rename(select_pred_smse, :TAverage => :T, :HRAverage => :Rh)
 
-#Eror occured due to the relative humidity goes above 1 (1.0098)
+#Eror occured due to the relative humidity goes above 1 (1.0098) only for smse 
 any(select_pred_smse.Rh .== 1.0098)
 select_pred_smse.Rh[select_pred_smse.Rh .== 1.0098] .= 1
 
 #create the csv file
-CSV.write("xpalm_introduction/2-results/meteo_smse_cleaned.csv", select_pred_smse, delim=";")
+CSV.write("2-results/meteo_smse_cleaned.csv", select_pred_smse, delim=";")
 
