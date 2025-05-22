@@ -1,4 +1,6 @@
-'Plot all the meteo datasets from 3 sites (actual period and added by nursery period), which will be use as an input for the xpalm simulation'
+"""
+Plot all the meteo datasets from 3 sites (actual period and added by nursery period), which will be use as an input for the xpalm simulation
+"""
 
 using XPalm, DataFrames, YAML, CSV
 using CairoMakie, AlgebraOfGraphics
