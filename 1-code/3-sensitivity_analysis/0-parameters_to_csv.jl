@@ -36,4 +36,4 @@ df.high_boundary .= missing
 df.source .= missing
 df.comment .= missing
 output_file = "2-results/xpalm_parameters.csv"
-!isfile(output_file) && CSV.write(output_file, df)
+# !isfile(output_file) && CSV.write(output_file, df)
