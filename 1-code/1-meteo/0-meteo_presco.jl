@@ -60,16 +60,16 @@ select_pred_presco.Rg = coalesce.(select_pred_presco.Rg, select_pred_presco.Rg_p
 select_pred_presco.Ri_PAR_f = coalesce.(select_pred_presco.Ri_PAR_f, select_pred_presco.Ri_PAR_pred, mean(skipmissing(select_pred_presco.Ri_PAR_f)))
 
 #replace the too fluctuated value with the average value 
-select_pred_presco.Precipitations[select_pred_presco.Precipitations .> 200] .= mean(skipmissing(select_pred_presco.Precipitations))
-select_pred_presco.TAverage[select_pred_presco.TAverage .< 18] .= mean(skipmissing(select_pred_presco.TAverage))
-select_pred_presco.Tmax[select_pred_presco.Tmax .< 18] .= mean(skipmissing(select_pred_presco.Tmax))
+select_pred_presco.Precipitations[select_pred_presco.Precipitations.>200] .= mean(skipmissing(select_pred_presco.Precipitations))
+select_pred_presco.TAverage[select_pred_presco.TAverage.<18] .= mean(skipmissing(select_pred_presco.TAverage))
+select_pred_presco.Tmax[select_pred_presco.Tmax.<18] .= mean(skipmissing(select_pred_presco.Tmax))
 
 #exception for wind and Ri_PAR_f since they are not predicted
 avg_wind = mean(skipmissing(select_pred_presco.Wind))
 
 # Replace missing values of Wind with their respective averages and 0.0 with 1e-6
 select_pred_presco.Wind = coalesce.(select_pred_presco.Wind, avg_wind)
-select_pred_presco.Wind[select_pred_presco.Wind .== 0.0] .= 1e-6
+select_pred_presco.Wind[select_pred_presco.Wind.==0.0] .= 1e-6
 any(select_pred_presco.Wind .== 0.0)
 
 # Plotting the temperature:
@@ -87,7 +87,7 @@ plot_meteo(select_pred_presco, [:Precipitations], "Rainfall presco") #plot the d
 
 
 # Check summary after imputation
-describe(select_pred_presco) 
+describe(select_pred_presco)
 
 #rename TAverage and HRAverage to T and Rh
 select_pred_presco = rename(select_pred_presco, :TAverage => :T, :HRAverage => :Rh)
