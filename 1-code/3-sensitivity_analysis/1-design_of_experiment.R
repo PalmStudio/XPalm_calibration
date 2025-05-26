@@ -6,6 +6,9 @@ library(sensitivity)
 df_raw_params <- read.csv("2-results/xpalm_parameters.csv", sep = ";")
 df_raw_params <- df_raw_params[!is.na(as.numeric(df_raw_params$low_boundary)) & !is.na(as.numeric(df_raw_params$high_boundary)), ]
 
+# Remove the rows that have sensitivity = false
+df_raw_params <- df_raw_params[df_raw_params$sensitivity == "true", ]
+
 set.seed(1)
 RNGkind(kind = "L'Ecuyer-CMRG")
 
