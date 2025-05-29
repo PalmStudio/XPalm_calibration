@@ -24,16 +24,17 @@ get_xpalm_parameters(parameters) = get_xpalm_parameters("", parameters, Dict{Str
 
 flattened_parameters = get_xpalm_parameters(parameters)
 
-flattened_parameters["potential_area|slope"]
-flattened_parameters["carbon_demand|leaf|respiration_cost"]
-
 df = DataFrame(variable=collect(keys(flattened_parameters)), value=collect(values(flattened_parameters)))
 df.unit .= missing
 df.definition .= missing
 df.sensitivity .= missing
-df.low_boundary .= missing
-df.high_boundary .= missing
+df.low_boundary .= df.value .* 0.5
+df.high_boundary .= df.value .* 1.5
 df.source .= missing
 df.comment .= missing
-output_file = "2-results/xpalm_parameters.csv"
-# !isfile(output_file) && CSV.write(output_file, df)
+output_file = "2-results/xpalm_parameters_raw.csv"
+# !isfile(output_file) && CSV.write(output_file, df, delim=";")
+
+# Note: `xpalm_parameters_raw.csv` is a first draft of the parameters without knowledge about the units,
+# definitions, usage for sensitivity, sources, and with a first guess for the boundaries set to +/- 50% of the value.
+# It serves as a starting point for further manual refinement and validation in the `xpalm_parameters.csv` file
