@@ -41,7 +41,7 @@ female:
   fraction_period_oleosynthesis: 0.8
   duration_fruit_setting: 405.0
   fraction_period_stalk: 0.2
-  TT_harvest: 12150.0 # 90 phytomers until harvest (60 growing + 30 opened) x 9°C days-1 in average per day x 15 days
+  duration_bunch_development: 1215.0 # 90 phytomers until harvest (60 growing + 30 opened) x 9°C days-1 in average per day x 15 days
   oil_content: 0.25
   duration_dev_spikelets: 675.0
   potential_fruit_number_at_maturity: 2000
@@ -74,7 +74,7 @@ respiration:
     Gi: 0.07
     P_alive: 0.8
   Internode:
-    Q10: 1.7  # Dufrene et al. (2005)
+    Q10: 1.7 # Dufrene et al. (2005)
     T_ref: 25.0 # Dufrene et al. (1990), gives Rm_base commpared to all dry mass (not just living biomass)
     Mr: 0.005 # Dufrene (1990)
     P_alive: 0.21 # Dufrene et al. (2005)
