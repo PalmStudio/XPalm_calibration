@@ -12,6 +12,13 @@ template_parameters = YAML.load_file(template_yaml; dicttype=Dict{Symbol,Any})
 # Importing the design of experiment (DOE) for the sensitivity analysis:
 doe = CSV.read("2-results/doe.csv", DataFrame)
 
+# Set the initial water content to the field capacity, because those values are correlated:
+col_H_0 = findfirst(x -> endswith(x, "initial_water_content"), names(doe))
+col_H_FC = findfirst(x -> endswith(x, "field_capacity"), names(doe))
+doe[:, col_H_0] .= doe[:, col_H_FC]
+#! remember to remove the `initial_water_content` from the sensitivity analysis.
+#! We could also fix the `field_capacity` to a constant value, and analyse the effect of the `initial_water_content` instead.
+
 function set_nested!(dict::D, path::Vector{<:AbstractString}, value) where D<:AbstractDict
     d = dict
     for k in path[1:end-1]
@@ -43,10 +50,11 @@ out_vars = Dict(
 )
 
 # Make the simulations for each row of the DOE, for each site:
-simulations = DataFrame[]
-# for row in eachrow(doe[1:2, 1:5])
-for row in eachrow(doe)
-    parameters = copy(template_parameters)
+simulations = Dict{String,DataFrame}[]
+
+@time for row in eachrow(doe[1:2, :])
+    # row = doe[1, :] # For testing purposes, use the first row of the DOE
+    parameters = deepcopy(template_parameters)
 
     # Set the parameters to the values in the current simulation of the DOE:
     for (k, v) in pairs(row)
@@ -55,22 +63,31 @@ for row in eachrow(doe)
     end
     # YAML.write_file("xpalm_parameters_$i.yml", parameters) # Un-comment to write the parameters to a YAML file
 
-    simulations_sites = DataFrame[]
-    for site in ["smse", "presco", "towe"]
+    simulations_sites = Dict{String,DataFrame}[]
+    for site in ["smse", "presco", "towe"] # site = "smse"
         parameters[:plot][:latitude] = latitude[site]
         parameters[:plot][:altitude] = altitude[site]
 
         sim = xpalm(meteos[site], DataFrame; vars=out_vars, palm=XPalm.Palm(initiation_age=0, parameters=parameters))
-        sim[!, "Site"] .= site
-        sim[!, :date] = meteos[site].date[sim.timestep]
+        for v in values(sim)
+            v[!, "Site"] .= site
+            v[!, :date] = meteos[site].date[v.timestep]
+        end
         push!(simulations_sites, sim)
     end
 
-    # Adding the dates to the simulations:
-    dfs_all = vcat(simulations_sites...)
+    #! Update this below to use vcat on each DataFrame for each scale:
+    sim_per_scale = Dict{String,DataFrame}()
+    for sim_site in simulations_sites
+        for (s, df_) in pairs(sim_site)
+            sim_per_scale[s] = vcat(get(sim_per_scale, s, DataFrame()), df_)
+        end
+    end
 
-    push!(simulations, dfs_all)
+    push!(simulations, sim_per_scale)
 end
+# ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
+# 705.73 μs per day, or 0.257 s per year.
 
 # meteo_all = vcat(meteos["smse"], meteos["presco"], meteos["towe"])
 # dfs_all = leftjoin(simulations, meteo_all, on=[:Site, :date,])
