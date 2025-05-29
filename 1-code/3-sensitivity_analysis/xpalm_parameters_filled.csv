@@ -9,7 +9,7 @@ phyllochron|age_palm_maturity;2920.0;days;;;1460.0;4380.0;;
 carbon_demand|internode|apparent_density;300000.0;�g m-3;;;150000.0;450000.0;;
 respiration|RootSystem|Prot;6.25;;;;3.125;9.375;;
 respiration|RootSystem|P_alive;0.8;;;;0.4;1.0;; Manually set between 0.4 and 1.0
-phenology|female|TT_harvest;12150.0;;;;6075.0;18225.0;;
+phenology|female|duration_bunch_development;1215.0;;;;607.5;1822.5;;
 respiration|RootSystem|T_ref;25.0;;;;12.5;37.5;;
 carbon_demand|male|respiration_cost;1.44;;;;1.0;2.16;;Manually put the lower boundary to 1.0
 dimensions|leaf|age_first_mature_leaf;2920.0;days;;;1460.0;4380.0;;
@@ -64,7 +64,7 @@ dimensions|internode|slope_height;150.0;;;;75.0;225.0;;
 mass_and_dimensions|leaf|lma_min;80.0;g m?;;106.0;40.0;120.0;;Dufrene 1990
 phenology|female|fraction_period_oleosynthesis;0.8;;;;0.0;1.0;;
 carbon_demand|reserves|cost_reserve_mobilization;1.667;;;;1.0;2.5005;;Manually put the lower boundary to 1.0
-plot|latitude;0.97;;;;0.485;1.455;;
+plot|latitude;0.97;;;false;0.485;1.455;;
 phenology|male|duration_flowering_male;1800.0;;;;900.0;2700.0;;
 water|initial_water_content;0.25;;;;0.125;0.375;;
 respiration|Female|Q10;2.1;;;;1.05;3.1500000000000004;;
