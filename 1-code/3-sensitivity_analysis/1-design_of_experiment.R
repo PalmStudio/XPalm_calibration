@@ -3,11 +3,13 @@
 
 library(sensitivity)
 
+# Import the parameters with their boundaries. The boundaries are set either as
+# +/- 50% of the original value, fixed for 0-1 parameters, or defined by the
+# literature review)
 df_raw_params <- read.csv("2-results/xpalm_parameters.csv", sep = ";")
-df_raw_params <- df_raw_params[!is.na(as.numeric(df_raw_params$low_boundary)) & !is.na(as.numeric(df_raw_params$high_boundary)), ]
 
-# Remove the rows that have sensitivity = false
-df_raw_params <- df_raw_params[df_raw_params$sensitivity == "true", ]
+# Remove the rows that have sensitivity = false, or that have no boundaries defined
+df_raw_params <- df_raw_params[df_raw_params$sensitivity != "false" & !is.na(as.numeric(df_raw_params$low_boundary)) & !is.na(as.numeric(df_raw_params$high_boundary)), ]
 
 set.seed(1)
 RNGkind(kind = "L'Ecuyer-CMRG")
