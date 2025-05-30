@@ -1,5 +1,6 @@
 using XPalm
 using YAML, CSV, DataFrames
+using Base.Threads
 
 # Import the meteo data:
 meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in ["smse", "presco", "towe"])
@@ -49,11 +50,12 @@ out_vars = Dict(
     "Leaf" => (:biomass,),
 )
 
-# Make the simulations for each row of the DOE, for each site:
-simulations = Dict{String,DataFrame}[]
+# Run simulations for each DOE row in parallel and collect results safely:
+const N = nrow(doe)
+simulations = Vector{Dict{String,DataFrame}}(undef, N)
 
-@time for row in eachrow(doe[1:2, :])
-    # row = doe[1, :] # For testing purposes, use the first row of the DOE
+@time Threads.@threads for i in 1:10 # 40s for 10 simulations on my machine, 10 threads
+    row = doe[i, :]
     parameters = deepcopy(template_parameters)
 
     # Set the parameters to the values in the current simulation of the DOE:
@@ -76,7 +78,6 @@ simulations = Dict{String,DataFrame}[]
         push!(simulations_sites, sim)
     end
 
-    #! Update this below to use vcat on each DataFrame for each scale:
     sim_per_scale = Dict{String,DataFrame}()
     for sim_site in simulations_sites
         for (s, df_) in pairs(sim_site)
@@ -84,8 +85,9 @@ simulations = Dict{String,DataFrame}[]
         end
     end
 
-    push!(simulations, sim_per_scale)
+    simulations[i] = sim_per_scale
 end
+
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.
 
