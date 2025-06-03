@@ -45,14 +45,17 @@ altitude = Dict("smse" => 15.5, "presco" => 15.5, "towe" => 15.5)
 
 out_vars = Dict(
     "Scene" => (:lai, :ET0),
-    "Plant" => (:leaf_area, :biomass_bunch_harvested, :plant_age, :biomass_bunch_harvested_cum, :aPPFD, :carbon_assimilation),
+    "Plant" => (:leaf_area, :biomass_bunch_harvested, :plant_age, :biomass_bunch_harvested_cum, :aPPFD, :carbon_assimilation, :n_bunches_harvested_cum),
     "Soil" => (:ftsw, :qty_H2O_C_Roots, :transpiration),
     "Leaf" => (:biomass,),
+    "Female" => (:biomass_bunch_harvested, :plant_age)
 )
 
 # Run simulations for each DOE row in parallel and collect results safely:
 const N = nrow(doe)
-simulations = Vector{Dict{String,DataFrame}}(undef, N)
+sites = ["smse", "presco", "towe"]
+# simulations = Vector{Dict{String,DataFrame}}(undef, N)
+simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
 @time Threads.@threads for i in 1:10 # 40s for 10 simulations on my machine, 10 threads
     row = doe[i, :]
@@ -66,27 +69,46 @@ simulations = Vector{Dict{String,DataFrame}}(undef, N)
     # YAML.write_file("xpalm_parameters_$i.yml", parameters) # Un-comment to write the parameters to a YAML file
 
     simulations_sites = Dict{String,DataFrame}[]
-    for site in ["smse", "presco", "towe"] # site = "smse"
+    for site in sites
         parameters[:plot][:latitude] = latitude[site]
         parameters[:plot][:altitude] = altitude[site]
 
         sim = xpalm(meteos[site], DataFrame; vars=out_vars, palm=XPalm.Palm(initiation_age=0, parameters=parameters))
-        for v in values(sim)
-            v[!, "Site"] .= site
-            v[!, :date] = meteos[site].date[v.timestep]
-        end
-        push!(simulations_sites, sim)
+
+        max_ftsw = maximum(sim["Soil"].ftsw)
+
+        plant_age = sim["Plant"].plant_age
+        nursery_duration = 1.5 * 365
+        age_3 = nursery_duration + 3 * 365
+        age_6 = nursery_duration + 6 * 365
+        index_age_3_to_6 = findall(x -> age_3 < x <= age_6, plant_age)
+        df_female_biomass_3_to_6 = filter(x -> x.biomass_bunch_harvested > 0.0 && age_3 < x.plant_age <= age_6, sim["Female"])
+        average_female_biomass_3_to_6 = mean(df_female_biomass_3_to_6.biomass_bunch_harvested)
+
+        simulations[site][i] = Dict(
+            "doe" => i, "site" => site,
+            "max_ftsw" => max_ftsw,
+            "min_ftsw" => minimum(sim["Soil"].ftsw),
+            "max_qty_H2O_C_Roots" => maximum(sim["Soil"].qty_H2O_C_Roots),
+            "min_qty_H2O_C_Roots" => minimum(sim["Soil"].qty_H2O_C_Roots),
+            "n_bunches_harvested_cum_3_to_6" => sim["Plant"].n_bunches_harvested_cum[last(index_age_3_to_6)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_3_to_6)],
+            "average_bunch_biomass_3_to_6" => average_female_biomass_3_to_6,
+            # Compute the variables we need to investigate for the sensitivity analysis
+        )
     end
 
-    sim_per_scale = Dict{String,DataFrame}()
-    for sim_site in simulations_sites
-        for (s, df_) in pairs(sim_site)
-            sim_per_scale[s] = vcat(get(sim_per_scale, s, DataFrame()), df_)
-        end
-    end
+    # sim_per_scale = Dict{String,DataFrame}()
+    # for sim_site in simulations_sites
+    #     for (s, df_) in pairs(sim_site)
+    #         sim_per_scale[s] = vcat(get(sim_per_scale, s, DataFrame()), df_)
+    #     end
+    # end
 
-    simulations[i] = sim_per_scale
+    # simulations[i] = sim_per_scale
 end
+
+df_outputs = DataFrame(simulations)
+CSV.write("2-results/simulations.csv", df_outputs)
 
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.
