@@ -1,9 +1,13 @@
 using XPalm
 using YAML, CSV, DataFrames
 using Base.Threads
+using Statistics
+
+# Names of the sites:
+sites = ["smse", "presco", "towe"]
 
 # Import the meteo data:
-meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in ["smse", "presco", "towe"])
+meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in sites)
 
 # Import the template YAML file:
 template_yaml = "0-data/xpalm_parameters.yml"
@@ -53,11 +57,11 @@ out_vars = Dict(
 
 # Run simulations for each DOE row in parallel and collect results safely:
 const N = nrow(doe)
-sites = ["smse", "presco", "towe"]
+# N = 10
 # simulations = Vector{Dict{String,DataFrame}}(undef, N)
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
-@time Threads.@threads for i in 1:10 # 40s for 10 simulations on my machine, 10 threads
+@time Threads.@threads for i in 1:N # 40s for 10 simulations on my machine, 10 threads
     row = doe[i, :]
     parameters = deepcopy(template_parameters)
 
@@ -69,7 +73,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
     # YAML.write_file("xpalm_parameters_$i.yml", parameters) # Un-comment to write the parameters to a YAML file
 
     simulations_sites = Dict{String,DataFrame}[]
-    for site in sites
+    for site in sites # site = sites[1]
         parameters[:plot][:latitude] = latitude[site]
         parameters[:plot][:altitude] = altitude[site]
 
@@ -96,19 +100,11 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             # Compute the variables we need to investigate for the sensitivity analysis
         )
     end
-
-    # sim_per_scale = Dict{String,DataFrame}()
-    # for sim_site in simulations_sites
-    #     for (s, df_) in pairs(sim_site)
-    #         sim_per_scale[s] = vcat(get(sim_per_scale, s, DataFrame()), df_)
-    #     end
-    # end
-
-    # simulations[i] = sim_per_scale
 end
 
-df_outputs = DataFrame(simulations)
-CSV.write("2-results/simulations.csv", df_outputs)
+df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
+
+CSV.write("2-results/simulations.csv", df_simulations)
 
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.
