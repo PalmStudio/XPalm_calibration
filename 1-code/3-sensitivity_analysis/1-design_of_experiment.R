@@ -24,4 +24,4 @@ etude.morris <- morris(
   scale = TRUE
 )
 
-write.csv(etude.morris$X, "2-results/doe.csv", row.names = FALSE)
+write.csv(etude.morris$X, "2-results/sensitivity/doe.csv", row.names = FALSE)

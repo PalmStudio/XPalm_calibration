@@ -65,7 +65,7 @@ pwd()
 
 # ╔═╡ 1fa0b119-26fe-4807-8aea-50cdbd591656
 meteo = let
-    m = CSV.read("2-results/meteo_towe_cleaned_Precipitations.csv", DataFrame)
+    m = CSV.read("2-results/meteorology/meteo_towe_cleaned_Precipitations.csv", DataFrame)
     m.duration .= Dates.Day(1)
     m.timestep .= 1:nrow(m)
     Weather(m)

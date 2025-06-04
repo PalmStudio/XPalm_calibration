@@ -64,12 +64,12 @@ avg_wind = mean(skipmissing(select_pred_towe.Wind))
 
 # Replace missing values of Wind with their respective averages and 0.0 with 1e-6
 select_pred_towe.Wind = coalesce.(select_pred_towe.Wind, avg_wind)
-select_pred_towe.Wind[select_pred_towe.Wind .== 0.0] .= 1e-6
+select_pred_towe.Wind[select_pred_towe.Wind.==0.0] .= 1e-6
 any(select_pred_towe.Wind .== 0.0)
 
 #replace the too fluctuated value with the average value 
-select_pred_towe.Wind[select_pred_towe.Wind .> 5] .= avg_wind
-select_pred_towe.Rg[select_pred_towe.Rg .> 30] .= mean(skipmissing(select_pred_towe.Rg))
+select_pred_towe.Wind[select_pred_towe.Wind.>5] .= avg_wind
+select_pred_towe.Rg[select_pred_towe.Rg.>30] .= mean(skipmissing(select_pred_towe.Rg))
 
 # Plotting the temperature:
 # Make a function to plot the data:
@@ -85,11 +85,11 @@ plot_meteo(select_pred_towe, [:Rh_min, :Rh_max], "Humidity towe") #plot the data
 plot_meteo(select_pred_towe, [:Precipitations], "Rainfall towe") #plot the data
 
 # Check summary after imputation
-describe(select_pred_towe) 
+describe(select_pred_towe)
 
 #rename TAverage and HRAverage to T and Rh
 select_pred_towe = rename(select_pred_towe, :TAverage => :T, :HRAverage => :Rh)
 
 #create the csv file
-CSV.write("2-results/meteo_towe_cleaned.csv", select_pred_towe, delim=";")
+CSV.write("2-results/meteorology/meteo_towe_cleaned.csv", select_pred_towe, delim=";")
 

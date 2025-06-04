@@ -93,5 +93,5 @@ describe(select_pred_presco)
 select_pred_presco = rename(select_pred_presco, :TAverage => :T, :HRAverage => :Rh)
 
 #create the csv file
-CSV.write("2-results/meteo_presco_cleaned.csv", select_pred_presco, delim=";")
+CSV.write("2-results/meteorology/meteo_presco_cleaned.csv", select_pred_presco, delim=";")
 
