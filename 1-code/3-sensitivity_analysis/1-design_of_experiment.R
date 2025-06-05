@@ -1,12 +1,14 @@
 # A script to generate a design of experiment (DoE) for the Morris method
 # using the parameters defined in the xpalm_parameters.csv file.
-###load/install the package
+### load/install the package
 
-packs <- c( "sensitivity", "lhs", "ggplot2",'dplyr','ggrepel','plotly','data.table')
-InstIfNec<-function (pack) {
-  if (!do.call(require,as.list(pack))) {
-    do.call(install.packages,as.list(pack))  }
-  do.call(require,as.list(pack)) }
+packs <- c("sensitivity", "lhs", "ggplot2", "dplyr", "ggrepel", "plotly", "data.table")
+InstIfNec <- function(pack) {
+  if (!do.call(require, as.list(pack))) {
+    do.call(install.packages, as.list(pack))
+  }
+  do.call(require, as.list(pack))
+}
 lapply(packs, InstIfNec)
 # Import the parameters with their boundaries. The boundaries are set either as
 # +/- 50% of the original value, fixed for 0-1 parameters, or defined by the
@@ -26,14 +28,10 @@ etude.morris <- morris(
   design = list(type = "oat", levels = 10, grid.jump = 2),
   binf = df_raw_params$low_boundary,
   bsup = df_raw_params$high_boundary,
-  scale = TRUE)
+  scale = TRUE
+)
 
-print(etude.morris)
-nrow(etude.morris$X)
+write.csv(etude.morris$X, "2-results/sensitivity/doe.csv", row.names = FALSE)
+save(etude.morris, file = "2-results/sensitivity/etude_morris.RData")
 
-write.csv(etude.morris$X, "2-results/doe_test.csv", row.names = FALSE)
-
-save(etude.morris, file = "2-results/etude_morris.RData")
-
-test=read.csv("2-results/doe_test.csv") 
-
+test <- read.csv("2-results/sensitivity/doe.csv")

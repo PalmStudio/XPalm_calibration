@@ -8,7 +8,7 @@ using CairoMakie, AlgebraOfGraphics
 
 #simulation for SMSE
 
-meteo_smse = CSV.read("2-results/meteo_smse_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
+meteo_smse = CSV.read("2-results/meteorology/meteo_smse_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
 parameters = YAML.load_file("0-data/xpalm_parameters.yml"; dicttype=Dict{Symbol,Any})
 
 p = XPalm.Palm(parameters=parameters)
@@ -60,7 +60,7 @@ visual(Lines) |> draw
 ###
 #simulation for PRESCO
 
-meteo_presco = CSV.read("2-results/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
+meteo_presco = CSV.read("2-results/meteorology/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
 parameters = YAML.load_file("0-data/xpalm_parameters.yml"; dicttype=Dict{Symbol,Any})
 
 p = XPalm.Palm(parameters=parameters)
@@ -112,7 +112,7 @@ visual(Lines) |> draw
 ### 
 
 #simulation for TOWE
-meteo_towe = CSV.read("2-results/meteo_towe_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
+meteo_towe = CSV.read("2-results/meteorology/meteo_towe_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) #Benin
 parameters = YAML.load_file("0-data/xpalm_parameters.yml"; dicttype=Dict{Symbol,Any})
 
 p = XPalm.Palm(parameters=parameters)

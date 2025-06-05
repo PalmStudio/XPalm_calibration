@@ -65,12 +65,12 @@ avg_wind = mean(skipmissing(select_pred_smse.Wind))
 
 # Replace missing values of Wind with their respective averages and 0.0 with 1e-6
 select_pred_smse.Wind = coalesce.(select_pred_smse.Wind, avg_wind)
-select_pred_smse.Wind[select_pred_smse.Wind .== 0.0] .= 1e-6
+select_pred_smse.Wind[select_pred_smse.Wind.==0.0] .= 1e-6
 any(select_pred_smse.Wind .== 0.0)
 
 #replace the too fluctuated value with the average value 
-select_pred_smse.Rg[select_pred_smse.Rg .> 30] .= mean(skipmissing(select_pred_smse.Rg))
-select_pred_smse.Tmin[select_pred_smse.Tmin .> 30] .= mean(skipmissing(select_pred_smse.Tmin))
+select_pred_smse.Rg[select_pred_smse.Rg.>30] .= mean(skipmissing(select_pred_smse.Rg))
+select_pred_smse.Tmin[select_pred_smse.Tmin.>30] .= mean(skipmissing(select_pred_smse.Tmin))
 
 # Plotting the temperature:
 # Make a function to plot the data:
@@ -87,15 +87,15 @@ plot_meteo(select_pred_smse, [:Precipitations], "Rainfall smse") #plot the data
 
 
 # Check summary after imputation
-describe(select_pred_smse) 
+describe(select_pred_smse)
 
 #rename TAverage and HRAverage to T and Rh
 select_pred_smse = rename(select_pred_smse, :TAverage => :T, :HRAverage => :Rh)
 
 #Eror occured due to the relative humidity goes above 1 (1.0098) only for smse 
 any(select_pred_smse.Rh .== 1.0098)
-select_pred_smse.Rh[select_pred_smse.Rh .== 1.0098] .= 1
+select_pred_smse.Rh[select_pred_smse.Rh.==1.0098] .= 1
 
 #create the csv file
-CSV.write("2-results/meteo_smse_cleaned.csv", select_pred_smse, delim=";")
+CSV.write("2-results/meteorology/meteo_smse_cleaned.csv", select_pred_smse, delim=";")
 

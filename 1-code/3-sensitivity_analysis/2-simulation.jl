@@ -8,7 +8,7 @@ using Statistics
 sites = ["smse", "presco"]
 
 # Import the meteo data:
-meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in sites)
+meteos = Dict(i => CSV.read("2-results/meteorology/meteo_$(i)_with_nursery.csv", DataFrame) for i in sites)
 
 # Import the template YAML file:
 template_yaml = "0-data/xpalm_parameters.yml"
@@ -16,7 +16,7 @@ template_yaml = "0-data/xpalm_parameters.yml"
 template_parameters = YAML.load_file(template_yaml; dicttype=Dict{Symbol,Any})
 
 # Importing the design of experiment (DOE) for the sensitivity analysis:
-doe = CSV.read("2-results/doe.csv", DataFrame)
+doe = CSV.read("2-results/sensitivity/doe.csv", DataFrame)
 
 # Set the initial water content to the field capacity, because those values are correlated:
 col_H_0 = findfirst(x -> endswith(x, "initial_water_content"), names(doe))
@@ -58,7 +58,7 @@ out_vars = Dict(
 
 # Run simulations for each DOE row in parallel and collect results safely:
 const N = nrow(doe)
-# N = 1
+# N = 10
 # simulations = Vector{Dict{String,DataFrame}}(undef, N)
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
@@ -115,7 +115,7 @@ end
 
 df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
 
-CSV.write("2-results/simulations.csv", df_simulations)
+CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
 
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.

@@ -3,7 +3,7 @@ using XPalm
 using BenchmarkTools
 
 # Just to test how much time it takes to run the simulations:
-meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in ["smse", "presco", "towe"])
+meteos = Dict(i => CSV.read("2-results/meteorology/meteo_$(i)_with_nursery.csv", DataFrame) for i in ["smse", "presco", "towe"])
 template_yaml = "0-data/xpalm_parameters.yml"
 # Load the template YAML file:
 template_parameters = YAML.load_file(template_yaml; dicttype=Dict{Symbol,Any})
