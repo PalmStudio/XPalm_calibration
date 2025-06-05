@@ -1,10 +1,11 @@
 using XPalm
+using PlantSimEngine
 using YAML, CSV, DataFrames
 using Base.Threads
 using Statistics
 
 # Names of the sites:
-sites = ["smse", "presco", "towe"]
+sites = ["smse", "presco"]
 
 # Import the meteo data:
 meteos = Dict(i => CSV.read("2-results/meteo_$(i)_with_nursery.csv", DataFrame) for i in sites)
@@ -57,7 +58,7 @@ out_vars = Dict(
 
 # Run simulations for each DOE row in parallel and collect results safely:
 const N = nrow(doe)
-# N = 10
+# N = 1
 # simulations = Vector{Dict{String,DataFrame}}(undef, N)
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
@@ -77,7 +78,17 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
         parameters[:plot][:latitude] = latitude[site]
         parameters[:plot][:altitude] = altitude[site]
 
-        sim = xpalm(meteos[site], DataFrame; vars=out_vars, palm=XPalm.Palm(initiation_age=0, parameters=parameters))
+        # sim = xpalm(meteos[site], DataFrame; vars=out_vars, palm=XPalm.Palm(initiation_age=0, parameters=parameters))
+        palm = XPalm.Palm(initiation_age=0, parameters=parameters)
+        out = PlantSimEngine.run!(palm.mtg, XPalm.model_mapping(palm), meteos[site], tracked_outputs=out_vars, executor=PlantSimEngine.SequentialEx(), check=false)
+
+        for (scale, scale_outputs) in out
+            if length(out[scale]) == 0
+                pop!(out[scale])
+            end
+        end
+
+        sim = PlantSimEngine.convert_outputs(out, DataFrame, no_value=missing)
 
         max_ftsw = maximum(sim["Soil"].ftsw)
 
