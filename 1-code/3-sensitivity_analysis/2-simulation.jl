@@ -73,7 +73,6 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
     end
     # YAML.write_file("xpalm_parameters_$i.yml", parameters) # Un-comment to write the parameters to a YAML file
 
-    simulations_sites = Dict{String,DataFrame}[]
     for site in sites # site = sites[1]
         parameters[:plot][:latitude] = latitude[site]
         parameters[:plot][:altitude] = altitude[site]
@@ -82,11 +81,8 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
         palm = XPalm.Palm(initiation_age=0, parameters=parameters)
         out = PlantSimEngine.run!(palm.mtg, XPalm.model_mapping(palm), meteos[site], tracked_outputs=out_vars, executor=PlantSimEngine.SequentialEx(), check=false)
 
-        for (scale, scale_outputs) in out
-            if length(out[scale]) == 0
-                pop!(out[scale])
-            end
-        end
+        # Filter out empty outputs (in case e.g. Females are never created during the simulation):
+        filter!(kv -> !isempty(kv[2]), out)
 
         sim = PlantSimEngine.convert_outputs(out, DataFrame, no_value=missing)
 
@@ -97,8 +93,13 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
         age_3 = nursery_duration + 3 * 365
         age_6 = nursery_duration + 6 * 365
         index_age_3_to_6 = findall(x -> age_3 < x <= age_6, plant_age)
-        df_female_biomass_3_to_6 = filter(x -> x.biomass_bunch_harvested > 0.0 && age_3 < x.plant_age <= age_6, sim["Female"])
-        average_female_biomass_3_to_6 = mean(df_female_biomass_3_to_6.biomass_bunch_harvested)
+
+        if haskey(sim, "Female")
+            df_female_biomass_3_to_6 = filter(x -> x.biomass_bunch_harvested > 0.0 && age_3 < x.plant_age <= age_6, sim["Female"])
+            average_female_biomass_3_to_6 = mean(df_female_biomass_3_to_6.biomass_bunch_harvested)
+        else
+            average_female_biomass_3_to_6 = missing
+        end
 
         simulations[site][i] = Dict(
             "doe" => i, "site" => site,
@@ -114,6 +115,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 end
 
 df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
+# df_simulations = vcat([DataFrame([i[j] for j in 1:length(i) if isassigned(i, j)]) for i in values(simulations)]...)
 
 CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
 
