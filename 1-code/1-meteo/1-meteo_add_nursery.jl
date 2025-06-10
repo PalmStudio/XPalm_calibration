@@ -62,7 +62,7 @@ csv_sets = (
     towe=meteo_towe_combined,
 )
 
-output_dir = "2-results"
+output_dir = "2-results/meteorology/"
 
 for (name, df) in pairs(csv_sets)
     CSV.write(joinpath(output_dir, "meteo_$(name)_with_nursery.csv"), df, delim=";")
