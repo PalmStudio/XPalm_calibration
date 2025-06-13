@@ -66,7 +66,7 @@ const N = 1 #nrow(doe)
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
 @time Threads.@threads for i in 1:N # 40s for 10 simulations on my machine, 10 threads
-    #i = 1 
+    # i = 1 
     row = doe[i, :]
     parameters = deepcopy(template_parameters)
 
@@ -114,12 +114,9 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             average_female_bunch_harvested_6_to_9 = mean(df_female_bunch_harvested_6_to_9.biomass_bunch_harvested)
             df_female_bunch_harvested_9_to_12 = filter(x -> x.biomass_bunch_harvested > 0.0, df_female_9_to_12, view=true)
             average_female_bunch_harvested_9_to_12 = mean(df_female_bunch_harvested_9_to_12.biomass_bunch_harvested)
-            df_female_biomass_3_to_6 = filter(x -> x.biomass > 0.0, df_female_3_to_6, view=true)
-            average_female_biomass_3_to_6 = mean(df_female_biomass_3_to_6.biomass)
-            df_female_biomass_6_to_9 = filter(x -> x.biomass > 0.0, df_female_6_to_9, view=true)
-            average_female_biomass_6_to_9 = mean(df_female_biomass_6_to_9.biomass)
-            df_female_biomass_9_to_12 = filter(x -> x.biomass > 0.0, df_female_9_to_12, view=true)
-            average_female_biomass_9_to_12 = mean(df_female_biomass_9_to_12.biomass)
+            average_female_biomass_3_to_6 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_3_to_6[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_3_to_6) / 365)
+            average_female_biomass_6_to_9 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_6_to_9[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_6_to_9) / 365)
+            average_female_biomass_9_to_12 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_9_to_12[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_9_to_12) / 365)
 
             filter_fruits = (x -> x.nb_fruits_flag == true)
             filter_yield_gap = filter(i -> !isnan(sim["Plant"].yield_gap_oil[i]))
@@ -174,26 +171,27 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
         simulations[site][i] = Dict(
             "doe" => i, "site" => site,
-            "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum / 1000,
-            "max_ftsw" => maximum(sim["Soil"].ftsw),
+            "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated yield in t ha-1 over the whole simulation
+            "average_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (nrow(sim["Plant"]) / 365), # Cumulated yield in t ha-1 year-1
+            "average_yield_3_to_6" => average_female_biomass_3_to_6, # Average yield in t ha-1 year-1 in the age range
+            "average_yield_6_to_9" => average_female_biomass_6_to_9,
+            "average_yield_9_to_12" => average_female_biomass_9_to_12,
+            "max_ftsw" => maximum(sim["Soil"].ftsw), # Maximum ftsw (fraction of transpirable soil water) during the simulation
             "min_ftsw" => minimum(sim["Soil"].ftsw),
-            "max_qty_H2O_C_Roots" => maximum(sim["Soil"].qty_H2O_C_Roots),
-            "min_qty_H2O_C_Roots" => minimum(sim["Soil"].qty_H2O_C_Roots),
-            "transpiration_3_to_6" => sum(sim["Soil"].transpiration[(index_age_3_to_6)]),
+            "max_qty_H2O_C_Roots" => maximum(sim["Soil"].qty_H2O_C_Roots), # Maximum water content available for the roots
+            "min_qty_H2O_C_Roots" => minimum(sim["Soil"].qty_H2O_C_Roots), # Minimum....
+            "transpiration_3_to_6" => sum(sim["Soil"].transpiration[(index_age_3_to_6)]), # cumulated transpiration in the age range
             "transpiration_6_to_9" => sum(sim["Soil"].transpiration[(index_age_6_to_9)]),
             "transpiration_9_to_12" => sum(sim["Soil"].transpiration[(index_age_9_to_12)]),
-            "n_bunches_harvested_cum_3_to_6" => sim["Plant"].n_bunches_harvested_cum[last(index_age_3_to_6)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_3_to_6)],
+            "n_bunches_harvested_cum_3_to_6" => sim["Plant"].n_bunches_harvested_cum[last(index_age_3_to_6)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_3_to_6)], # Cumulated harvested bunches in the age range
             "n_bunches_harvested_cum_6_to_9" => sim["Plant"].n_bunches_harvested_cum[last(index_age_6_to_9)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_6_to_9)],
             "n_bunches_harvested_cum_9_to_12" => sim["Plant"].n_bunches_harvested_cum[last(index_age_9_to_12)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_9_to_12)],
-            "average_n_bunches_harvested_3_to_6" => mean(sim["Plant"].n_bunches_harvested[last(index_age_3_to_6)]) - sim["Plant"].n_bunches_harvested[first(index_age_3_to_6)], #6-3 remove the cum for the average n of bunch in the period need to add the filter for the bunch if -999
-            "average_n_bunches_harvested_6_to_9" => mean(sim["Plant"].n_bunches_harvested[last(index_age_6_to_9)]) - sim["Plant"].n_bunches_harvested[first(index_age_6_to_9)],
-            "average_n_bunches_harvested_9_to_12" => mean(sim["Plant"].n_bunches_harvested[last(index_age_9_to_12)]) - sim["Plant"].n_bunches_harvested[first(index_age_9_to_12)],
-            "average_bunch_weight_3_to_6" => average_female_bunch_harvested_3_to_6,
+            "average_n_bunches_harvested_3_to_6" => mean(sim["Plant"].n_bunches_harvested[index_age_3_to_6]), # Number of bunches harvested per plant and per day in average
+            "average_n_bunches_harvested_6_to_9" => mean(sim["Plant"].n_bunches_harvested[index_age_6_to_9]),
+            "average_n_bunches_harvested_9_to_12" => mean(sim["Plant"].n_bunches_harvested[index_age_9_to_12]),
+            "average_bunch_weight_3_to_6" => average_female_bunch_harvested_3_to_6, # Average weight of the harvested bunches in the age range
             "average_bunch_weight_6_to_9" => average_female_bunch_harvested_6_to_9,
             "average_bunch_weight_9_to_12" => average_female_bunch_harvested_9_to_12,
-            "average_bunch_biomass_3_to_6" => average_female_biomass_3_to_6,
-            "average_bunch_biomass_6_to_9" => average_female_biomass_6_to_9,
-            "average_bunch_biomass_9_to_12" => average_female_biomass_9_to_12,
             "aPPFD_3_to_6" => sum(sim["Plant"].aPPFD[(index_age_3_to_6)]),
             "aPPFD_6_to_9" => sum(sim["Plant"].aPPFD[(index_age_6_to_9)]),
             "aPPFD_9_to_12" => sum(sim["Plant"].aPPFD[(index_age_9_to_12)]),
