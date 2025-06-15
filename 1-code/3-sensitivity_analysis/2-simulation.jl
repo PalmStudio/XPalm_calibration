@@ -3,6 +3,7 @@ using PlantSimEngine
 using YAML, CSV, DataFrames
 using Base.Threads
 using Statistics
+using Dates
 
 # Names of the sites:
 sites = ["smse"]
@@ -90,10 +91,8 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
         sim = PlantSimEngine.convert_outputs(out, DataFrame, no_value=missing) #only until here to test
 
-
-        df_see = sim["Plant"] ## continue here fix the NaN values
         plant_age = sim["Plant"].plant_age
-        nursery_duration = 1.5 * 365
+        nursery_duration = Int(1.5 * 366) # 366 because it rounds up to 549
         age_3 = nursery_duration + 3 * 365
         age_6 = nursery_duration + 6 * 365
         age_9 = nursery_duration + 9 * 365
@@ -101,6 +100,13 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
         index_age_3_to_6 = findall(x -> age_3 < x <= age_6, plant_age)
         index_age_6_to_9 = findall(x -> age_6 < x <= age_9, plant_age)
         index_age_9_to_12 = findall(x -> age_9 < x <= age_12, plant_age)
+
+        # Computing years based on 365 consecutive days. Year 1 starts after nursery
+        days_after_nursery_indices = 1:(nrow(sim["Plant"])-nursery_duration)
+        # Calculate year numbers for the period after nursery
+        # Year 1 starts on day 1 after nursery, Year 2 on day 366 after nursery, etc.
+        years_post_nursery = floor.(Int, (days_after_nursery_indices .- 1) ./ 365) .+ 1
+        sim["Plant"].year = vcat(fill(0, nursery_duration), years_post_nursery)
 
         if haskey(sim, "Female")
             df_female = sim["Female"]
@@ -110,13 +116,13 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
             df_female_bunch_harvested_3_to_6 = filter(x -> x.biomass_bunch_harvested > 0.0, df_female_3_to_6, view=true)
             average_female_bunch_harvested_3_to_6 = mean(df_female_bunch_harvested_3_to_6.biomass_bunch_harvested)
+            std_rel_female_bunch_harvested_3_to_6 = std(df_female_bunch_harvested_3_to_6.biomass_bunch_harvested) / average_female_bunch_harvested_3_to_6
             df_female_bunch_harvested_6_to_9 = filter(x -> x.biomass_bunch_harvested > 0.0, df_female_6_to_9, view=true)
             average_female_bunch_harvested_6_to_9 = mean(df_female_bunch_harvested_6_to_9.biomass_bunch_harvested)
+            std_rel_female_bunch_harvested_6_to_9 = std(df_female_bunch_harvested_6_to_9.biomass_bunch_harvested) / average_female_bunch_harvested_6_to_9
             df_female_bunch_harvested_9_to_12 = filter(x -> x.biomass_bunch_harvested > 0.0, df_female_9_to_12, view=true)
             average_female_bunch_harvested_9_to_12 = mean(df_female_bunch_harvested_9_to_12.biomass_bunch_harvested)
-            average_female_biomass_3_to_6 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_3_to_6[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_3_to_6) / 365)
-            average_female_biomass_6_to_9 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_6_to_9[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_6_to_9) / 365)
-            average_female_biomass_9_to_12 = -(sim["Plant"].biomass_bunch_harvested_cum[index_age_9_to_12[[end, 1]]]...) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (length(index_age_9_to_12) / 365)
+            std_rel_female_bunch_harvested_9_to_12 = std(df_female_bunch_harvested_9_to_12.biomass_bunch_harvested)
 
             filter_fruits = (x -> x.nb_fruits_flag == true)
             filter_yield_gap = filter(i -> !isnan(sim["Plant"].yield_gap_oil[i]))
@@ -146,36 +152,54 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
                     groupby(filter(filter_fruits, df_female), :node),
                     :biomass => maximum => :biomass_maximum).biomass_maximum
             )
-            #inter annual yield variability
-            function annual_yield_variability(plant_age, yield_daily, index_window)
-                year_index = floor.(Int, plant_age[index_window] ./ 365)
-                yield_window = yield_daily[index_window]
-                df = DataFrame(year=year_index, yield=yield_window)
-                annual = combine(groupby(df, :year), :yield => sum => :annual_yield)
-                return isempty(annual.annual_yield) ? NaN : std(annual.annual_yield) / mean(annual.annual_yield)
-            end
 
-            plant_age = sim["Plant"].plant_age
-            yield_daily = sim["Plant"].biomass_bunch_harvested
+            # Computing the annual yield of each year in the age range 3 to 6 in t ha-1 year-1:
+            df_yield_age_3_to_6 = combine(
+                groupby(subset(sim["Plant"], :year => ByRow(y -> 3 <= y < 6), view=true), :year),
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+            )
+            yield_3_to_6_average = mean(df_yield_age_3_to_6[!, :biomass_bunch_harvested])
+            yield_3_to_6_std_relative = std(df_yield_age_3_to_6[!, :biomass_bunch_harvested]) / yield_3_to_6_average
 
-
+            df_yield_age_6_to_9 = combine(
+                groupby(subset(sim["Plant"], :year => ByRow(y -> 6 <= y < 9), view=true), :year),
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+            )
+            yield_6_to_9_average = mean(df_yield_age_6_to_9[!, :biomass_bunch_harvested])
+            yield_6_to_9_std_relative = std(df_yield_age_6_to_9[!, :biomass_bunch_harvested]) / yield_6_to_9_average
+            df_yield_age_9_to_12 = combine(
+                groupby(subset(sim["Plant"], :year => ByRow(y -> 9 <= y < 12), view=true), :year),
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+            )
+            yield_9_to_12_average = mean(df_yield_age_9_to_12[!, :biomass_bunch_harvested])
+            yield_9_to_12_std_relative = std(df_yield_age_9_to_12[!, :biomass_bunch_harvested]) / yield_9_to_12_average
         else
             average_female_bunch_harvested_3_to_6 = missing
             average_female_bunch_harvested_6_to_9 = missing
             average_female_bunch_harvested_9_to_12 = missing
-            average_female_biomass_3_to_6 = missing
-            average_female_biomass_6_to_9 = missing
-            average_female_biomass_9_to_12 = missing
+            yield_3_to_6_average = missing
+            yield_3_to_6_std_relative = missing
+            yield_6_to_9_average = missing
+            yield_6_to_9_std_relative = missing
+            yield_9_to_12_average = missing
+            yield_9_to_12_std_relative = missing
+            average_number_fruits_3_to_6 = missing
+            average_number_fruits_6_to_9 = missing
+            average_number_fruits_9_to_12 = missing
+            potential_number_fruits = missing
+            potential_fruits_biomass = missing
         end
-
 
         simulations[site][i] = Dict(
             "doe" => i, "site" => site,
             "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated yield in t ha-1 over the whole simulation
             "average_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (nrow(sim["Plant"]) / 365), # Cumulated yield in t ha-1 year-1
-            "average_yield_3_to_6" => average_female_biomass_3_to_6, # Average yield in t ha-1 year-1 in the age range
-            "average_yield_6_to_9" => average_female_biomass_6_to_9,
-            "average_yield_9_to_12" => average_female_biomass_9_to_12,
+            "average_yield_3_to_6" => yield_3_to_6_average, # Average yield in t ha-1 year-1 in the age range
+            "average_yield_6_to_9" => yield_6_to_9_average,
+            "average_yield_9_to_12" => yield_9_to_12_average,
+            "yield_variability_3_to_6" => yield_3_to_6_std_relative, # Relative standard deviation of the yield in the age range
+            "yield_variability_6_to_9" => yield_6_to_9_std_relative,
+            "yield_variability_9_to_12" => yield_9_to_12_std_relative,
             "max_ftsw" => maximum(sim["Soil"].ftsw), # Maximum ftsw (fraction of transpirable soil water) during the simulation
             "min_ftsw" => minimum(sim["Soil"].ftsw),
             "max_qty_H2O_C_Roots" => maximum(sim["Soil"].qty_H2O_C_Roots), # Maximum water content available for the roots
@@ -216,22 +240,18 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             "biomass_leaf" => sum(combine(groupby(sim["Leaf"], :node), :biomass => maximum).biomass_maximum),
             "biomass_male" => sum(combine(groupby(sim["Male"], :node), :biomass => maximum).biomass_maximum),
             "biomass_internode" => sum(combine(groupby(sim["Internode"], :node), :biomass => maximum).biomass_maximum),
-            "reserve" => sim["Plant"].reserve,
+            "reserve" => mean(sim["Plant"].reserve),
             "average_n_fruits_3_to_6" => average_number_fruits_3_to_6,
             "average_n_fruits_6_to_9" => average_number_fruits_6_to_9,
             "average_n_fruits_9_to_12" => average_number_fruits_9_to_12,
             "potential_n_fruits" => potential_number_fruits,
             "potential_fruits_biomass" => potential_fruits_biomass,
-            "harvested_oil_cum_3_to_6" => sim["Plant"].biomass_oil_harvested[(index_age_3_to_6)],
-            "harvested_oil_cum_6_to_9" => sim["Plant"].biomass_oil_harvested[(index_age_6_to_9)],
-            "harvested_oil_cum_9_to_12" => sim["Plant"].biomass_oil_harvested[(index_age_9_to_12)],
-            "yield_gap_oil_3_to_6" => sim["Plant"].yield_gap_oil[last(index_age_3_to_6)] - sim["Plant"].yield_gap_oil[first(index_age_3_to_6)],
-            "yield_gap_oil_6_to_9" => sim["Plant"].yield_gap_oil[last(index_age_6_to_9)] - sim["Plant"].yield_gap_oil[first(index_age_6_to_9)],
-            "yield_gap_oil_9_to_12" => sim["Plant"].yield_gap_oil[last(index_age_9_to_12)] - sim["Plant"].yield_gap_oil[first(index_age_9_to_12)],
-            "yield_variability_3_to_6" => annual_yield_variability(plant_age, yield_daily, index_age_3_to_6),
-            "yield_variability_6_to_9" => annual_yield_variability(plant_age, yield_daily, index_age_6_to_9),
-            "yield_variability_9_to_12" => annual_yield_variability(plant_age, yield_daily, index_age_9_to_12),
-
+            "harvested_oil_cum_3_to_6" => sum(sim["Plant"].biomass_oil_harvested[(index_age_3_to_6)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated harvested oil in the age range in t ha-1
+            "harvested_oil_cum_6_to_9" => sum(sim["Plant"].biomass_oil_harvested[(index_age_6_to_9)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0),
+            "harvested_oil_cum_9_to_12" => sum(sim["Plant"].biomass_oil_harvested[(index_age_9_to_12)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0),
+            "yield_gap_oil_3_to_6" => mean(sim["Plant"].yield_gap_oil[index_age_3_to_6]),
+            "yield_gap_oil_6_to_9" => mean(sim["Plant"].yield_gap_oil[index_age_6_to_9]),
+            "yield_gap_oil_9_to_12" => mean(sim["Plant"].yield_gap_oil[index_age_9_to_12]),
             # Compute the variables we need to investigate for the sensitivity analysis
         )
     end
