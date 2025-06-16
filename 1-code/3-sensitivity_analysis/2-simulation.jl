@@ -62,8 +62,8 @@ out_vars = Dict(
 
 # Run simulations for each DOE row in parallel and collect results safely:
 const N = 1 #nrow(doe)
-# N = 1
-# simulations = Vector{Dict{String,DataFrame}}(undef, N)
+
+
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
 @time Threads.@threads for i in 1:N # 40s for 10 simulations on my machine, 10 threads
@@ -124,34 +124,52 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             average_female_bunch_harvested_9_to_12 = mean(df_female_bunch_harvested_9_to_12.biomass_bunch_harvested)
             std_rel_female_bunch_harvested_9_to_12 = std(df_female_bunch_harvested_9_to_12.biomass_bunch_harvested)
 
-            filter_fruits = (x -> x.nb_fruits_flag == true)
-            filter_yield_gap = filter(i -> !isnan(sim["Plant"].yield_gap_oil[i]))
+            df_female_subset = subset(df_female, :nb_fruits_flag, view=true) # We only pass :nb_fruits_flag because we want to filter for when it is true
+            if nrow(df_female_subset) > 0
+                df_female_subset = combine(
+                    groupby(df_female_subset, :node),
+                    :fruits_number => maximum => :fruits_number,
+                    :biomass => maximum => :biomass_maximum
+                )
+                potential_number_fruits = maximum(df_female_subset.fruits_number)
+                potential_fruits_biomass = maximum(df_female_subset.biomass_maximum)
+            else
+                potential_number_fruits = missing
+                potential_fruits_biomass = missing
+            end
 
-            average_number_fruits_3_to_6 = mean(
-                combine(
-                    groupby(filter(filter_fruits, df_female_3_to_6), :node),
-                    :fruits_number => maximum => :fruits_number).fruits_number
-            )
-            average_number_fruits_6_to_9 = mean(
-                combine(
-                    groupby(filter(filter_fruits, df_female_6_to_9), :node),
-                    :fruits_number => maximum => :fruits_number).fruits_number
-            )
-            average_number_fruits_9_to_12 = mean(
-                combine(
-                    groupby(filter(filter_fruits, df_female_9_to_12), :node),
-                    :fruits_number => maximum => :fruits_number).fruits_number
-            )
-            potential_number_fruits = maximum(
-                combine(
-                    groupby(filter(filter_fruits, df_female), :node),
-                    :fruits_number => maximum => :fruits_number).fruits_number
-            )
-            potential_fruits_biomass = maximum(
-                combine(
-                    groupby(filter(filter_fruits, df_female), :node),
-                    :biomass => maximum => :biomass_maximum).biomass_maximum
-            )
+            df_female_3_to_6_subset = subset(df_female_3_to_6, :nb_fruits_flag, view=true)
+            if nrow(df_female_3_to_6_subset) > 0
+                average_number_fruits_3_to_6 = mean(
+                    combine(
+                        groupby(df_female_3_to_6_subset, :node),
+                        :fruits_number => maximum => :fruits_number).fruits_number
+                )
+            else
+                average_number_fruits_3_to_6 = missing
+            end
+
+            df_female_6_to_9_subset = subset(df_female_6_to_9, :nb_fruits_flag, view=true)
+            if nrow(df_female_6_to_9_subset) > 0
+                average_number_fruits_6_to_9 = mean(
+                    combine(
+                        groupby(df_female_6_to_9_subset, :node),
+                        :fruits_number => maximum => :fruits_number).fruits_number
+                )
+            else
+                average_number_fruits_6_to_9 = missing
+            end
+
+            df_female_9_to_12_subset = subset(df_female_9_to_12, :nb_fruits_flag, view=true)
+            if nrow(df_female_9_to_12_subset) > 0
+                average_number_fruits_9_to_12 = mean(
+                    combine(
+                        groupby(df_female_9_to_12_subset, :node),
+                        :fruits_number => maximum => :fruits_number).fruits_number
+                )
+            else
+                average_number_fruits_9_to_12 = missing
+            end
 
             # Computing the annual yield of each year in the age range 3 to 6 in t ha-1 year-1:
             df_yield_age_3_to_6 = combine(
