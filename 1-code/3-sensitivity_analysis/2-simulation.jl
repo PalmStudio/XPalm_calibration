@@ -6,7 +6,7 @@ using Statistics
 using Dates
 
 # Names of the sites:
-sites = ["smse"]
+sites = ["smse", "presco", "towe"]
 
 # Import the meteo data:
 meteos = Dict(i => CSV.read("2-results/meteorology/meteo_$(i)_with_nursery.csv", DataFrame) for i in sites)
@@ -208,6 +208,14 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             potential_fruits_biomass = missing
         end
 
+        if nrow(sim["Male"]) > 0
+            max_biomass_male = sum(
+                combine(groupby(sim["Male"], :node), :biomass => maximum => :max_biomass).max_biomass
+            )
+        else
+            max_biomass_male = missing
+        end
+
         simulations[site][i] = Dict(
             "doe" => i, "site" => site,
             "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated yield in t ha-1 over the whole simulation
@@ -256,7 +264,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             "n_phytomer_6_to_9" => sim["Phytomer"].phytomer_count[last(index_age_6_to_9)] - sim["Phytomer"].phytomer_count[first(index_age_6_to_9)],
             "n_phytomer_9_to_12" => sim["Phytomer"].phytomer_count[last(index_age_9_to_12)] - sim["Phytomer"].phytomer_count[first(index_age_9_to_12)],
             "biomass_leaf" => sum(combine(groupby(sim["Leaf"], :node), :biomass => maximum).biomass_maximum),
-            "biomass_male" => sum(combine(groupby(sim["Male"], :node), :biomass => maximum).biomass_maximum),
+            "biomass_male" => max_biomass_male,
             "biomass_internode" => sum(combine(groupby(sim["Internode"], :node), :biomass => maximum).biomass_maximum),
             "reserve" => mean(sim["Plant"].reserve),
             "average_n_fruits_3_to_6" => average_number_fruits_3_to_6,
@@ -276,6 +284,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 end
 
 df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
+#df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
 # df_simulations = vcat([DataFrame([i[j] for j in 1:length(i) if isassigned(i, j)]) for i in values(simulations)]...)
 
 CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
