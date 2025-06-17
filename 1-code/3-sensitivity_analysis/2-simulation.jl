@@ -208,12 +208,13 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             potential_fruits_biomass = missing
         end
 
-        if nrow(sim["Male"]) > 0
-            max_biomass_male = sum(
-                combine(groupby(sim["Male"], :node), :biomass => maximum => :max_biomass).max_biomass
-            )
+        if haskey(sim, "Male")
+            df_males = combine(groupby(sim["Male"], :node), :biomass => maximum => :max_biomass)
+            total_biomass_males = sum(df_males.max_biomass)
+            n_males = nrow(df_males)
         else
-            max_biomass_male = missing
+            total_biomass_males = missing
+            n_males = missing
         end
 
         simulations[site][i] = Dict(
@@ -236,6 +237,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             "n_bunches_harvested_cum_3_to_6" => sim["Plant"].n_bunches_harvested_cum[last(index_age_3_to_6)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_3_to_6)], # Cumulated harvested bunches in the age range
             "n_bunches_harvested_cum_6_to_9" => sim["Plant"].n_bunches_harvested_cum[last(index_age_6_to_9)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_6_to_9)],
             "n_bunches_harvested_cum_9_to_12" => sim["Plant"].n_bunches_harvested_cum[last(index_age_9_to_12)] - sim["Plant"].n_bunches_harvested_cum[first(index_age_9_to_12)],
+            "n_males" => n_males,
             "average_n_bunches_harvested_3_to_6" => mean(sim["Plant"].n_bunches_harvested[index_age_3_to_6]), # Number of bunches harvested per plant and per day in average
             "average_n_bunches_harvested_6_to_9" => mean(sim["Plant"].n_bunches_harvested[index_age_6_to_9]),
             "average_n_bunches_harvested_9_to_12" => mean(sim["Plant"].n_bunches_harvested[index_age_9_to_12]),
@@ -264,7 +266,7 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             "n_phytomer_6_to_9" => sim["Phytomer"].phytomer_count[last(index_age_6_to_9)] - sim["Phytomer"].phytomer_count[first(index_age_6_to_9)],
             "n_phytomer_9_to_12" => sim["Phytomer"].phytomer_count[last(index_age_9_to_12)] - sim["Phytomer"].phytomer_count[first(index_age_9_to_12)],
             "biomass_leaf" => sum(combine(groupby(sim["Leaf"], :node), :biomass => maximum).biomass_maximum),
-            "biomass_male" => max_biomass_male,
+            "biomass_male" => total_biomass_males,
             "biomass_internode" => sum(combine(groupby(sim["Internode"], :node), :biomass => maximum).biomass_maximum),
             "reserve" => mean(sim["Plant"].reserve),
             "average_n_fruits_3_to_6" => average_number_fruits_3_to_6,
