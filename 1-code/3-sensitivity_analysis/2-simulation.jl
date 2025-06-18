@@ -61,7 +61,7 @@ out_vars = Dict(
 )
 
 # Run simulations for each DOE row in parallel and collect results safely:
-const N = 1 #nrow(doe)
+const N = nrow(doe)
 
 
 simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
