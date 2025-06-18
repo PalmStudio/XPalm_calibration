@@ -24,4 +24,5 @@ docs/site/
 Manifest.toml
 
 2-results/*.csv
-2-results/**/*.csv
+2-results/meteorology/*.csv
+2-results/sensitivity/loop/*.png
