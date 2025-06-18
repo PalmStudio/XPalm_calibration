@@ -78,3 +78,20 @@ for (variables in vars_list) {
     dpi = 300
   )
 }
+
+# extract the column the first highest sd for each site and variable
+sensitive_parameters <- all_res %>%
+  group_by(Site, var) %>%
+  slice_max(order_by = sd, n = 5, with_ties = FALSE) %>%
+  ungroup() %>%
+  arrange(var, Site, desc(sd)) %>% # this arranges nicely
+  select(var, params, Site, category)
+write.csv(sensitive_parameters, "2-results/sensitivity/sensitive_parameters.csv", row.names = FALSE)
+
+# list fix list of sensitive parameters from params list among al sites, but delete if it is repeated
+fix_sensitive_params <- sensitive_parameters %>%
+  group_by(var) %>%
+  select(params) %>%
+  distinct() %>%
+  arrange(var)
+write.csv(fix_sensitive_params, "2-results/sensitivity/fix_sensitive_params.csv", row.names = FALSE)
