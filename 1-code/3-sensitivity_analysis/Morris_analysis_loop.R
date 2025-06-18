@@ -61,19 +61,19 @@ for (variables in vars_list) {
   p <- ggplot(data_plot, aes(x = mu_star, y = sd, color = category)) +
     geom_point() +
     geom_text_repel(
-      data = subset(data_plot, mu_star > 0.0),
       aes(label = params),
       size = 3,
+      data = data_plot %>% filter(mu_star > 0.0)
     ) +
-    facet_grid(Site ~ var) +
+    facet_grid(. ~ Site) +
     labs(x = "mu_star", y = "sd", title = paste("Sensitivity Analysis Results for", variables)) +
     theme(legend.position = "bottom")
 
   ggsave(
     filename = paste0("2-results/sensitivity/loop/plot_", variables, ".png"),
     plot = p,
-    width = 7,
-    height = 20,
+    width = 20,
+    height = 9,
     units = "in",
     dpi = 300
   )
