@@ -46,15 +46,27 @@ df_planting_towe.period = fill("Planting", nrow(df_planting_towe))
 meteo_nursery_smse = copy(meteo_nursery)
 meteo_nursery_smse.date = planting_smse .- Day.(nursery_days-1:-1:0) #in smse the planting date is 2011-01-01
 meteo_smse_combined = vcat(meteo_nursery_smse, df_planting_smse; cols=:union)
+meteo_smse_combined.planting_date = fill(planting_smse, nrow(meteo_smse_combined))
 
 meteo_nursery_presco = copy(meteo_nursery)
 meteo_nursery_presco.date = planting_presco .- Day.(nursery_days:-1:1) #in presco the filling date will end before 2010-05-01
 meteo_presco_combined = vcat(meteo_nursery_presco, df_planting_presco; cols=:union)
+meteo_presco_combined.planting_date = fill(planting_presco, nrow(meteo_presco_combined))
 
 meteo_nursery_towe = copy(meteo_nursery)
 meteo_nursery_towe.date = planting_towe .- Day.(nursery_days:-1:1) #in towe the filling date will end before 2012-06-01
 meteo_towe_combined = vcat(meteo_nursery_towe, df_planting_towe; cols=:union)
+meteo_towe_combined.planting_date = fill(planting_towe, nrow(meteo_towe_combined))
 
+#add also month after planting (MAP)
+function add_MAP(df::DataFrame)
+    df.MAP = [(year(d) - year(p)) * 12 + (month(d) - month(p)) for (d, p) in zip(df.date, df.planting_date)]
+    return df
+end
+
+meteo_smse_combined = add_MAP(meteo_smse_combined)
+meteo_presco_combined = add_MAP(meteo_presco_combined)
+meteo_towe_combined = add_MAP(meteo_towe_combined)
 
 csv_sets = (
     smse=meteo_smse_combined,
