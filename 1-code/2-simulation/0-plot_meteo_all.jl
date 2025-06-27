@@ -27,22 +27,23 @@ for (sitename, df) in sites
 end
 
 #plot Temperature
-
 temp_vars = [:T, :Tmin, :Tmax]
 temp_stacked = stack(df_meteo_long, temp_vars; variable_name=:variable, value_name=:value)
 plt_temp = data(temp_stacked) *
            mapping(:date, :value, color=:site, row=:variable) *
            visual(Lines)
-draw(plt_temp; figure=(; title="Temperature"))
+fig_plt_temp = draw(plt_temp; figure=(; title="Temperature"))
+save("2-results/meteorology/plot_temperature.png", fig_plt_temp)
+
 
 #plot Humidity
-
 hum_vars = [:Rh, :Rh_min, :Rh_max]
 hum_stacked = stack(df_meteo_long, hum_vars; variable_name=:variable, value_name=:value)
 plt_hum = data(hum_stacked) *
           mapping(:date, :value, color=:site, row=:variable) *
           visual(Lines)
-draw(plt_hum; figure=(; title="Humidity"))
+fig_plt_hum = draw(plt_hum; figure=(; title="Humidity"))
+save("2-results/meteorology/plot_humidity.png", fig_plt_hum)
 
 #plot Radiation
 rad_vars = [:Ri_PAR_f, :Rg]
@@ -50,7 +51,8 @@ rad_stacked = stack(df_meteo_long, rad_vars; variable_name=:variable, value_name
 plt_rad = data(rad_stacked) *
           mapping(:date, :value, color=:site, row=:variable) *
           visual(Lines)
-draw(plt_rad; figure=(; title="Radiation"))
+fig_plt_rad = draw(plt_rad; figure=(; title="Radiation"))
+save("2-results/meteorology/plot_radiation.png", fig_plt_rad)
 
 #plot precipitations
 prec_vars = [:Precipitations]
@@ -58,7 +60,8 @@ prec_stacked = stack(df_meteo_long, prec_vars; variable_name=:variable, value_na
 plt_prec = data(prec_stacked) *
            mapping(:date, :value, color=:site, row=:variable) *
            visual(Lines)
-draw(plt_prec; figure=(; title="Precipitations"))
+fug_plt_prec = draw(plt_prec; figure=(; title="Precipitations"))
+save("2-results/meteorology/plot_precipitations.png", fug_plt_prec)
 
 #plot wind
 wind_vars = [:Wind]
@@ -66,13 +69,14 @@ wind_stacked = stack(df_meteo_long, wind_vars; variable_name=:variable, value_na
 plt_wind = data(wind_stacked) *
            mapping(:date, :value, color=:site, row=:variable) *
            visual(Lines)
-draw(plt_wind; figure=(; title="Wind"))
+fig_plt_wind = draw(plt_wind; figure=(; title="Wind"))
+save("2-results/meteorology/plot_wind.png", fig_plt_wind)
 
 
 #plot the climate conditions depending on the nursery and planting of the three sites
-meteo_comb_smse = CSV.read("2-results/meteorology/meteo_smse_combined.csv", missingstrings=["NA", "NaN"], DataFrame)  # Indonesia
-meteo_comb_towe = CSV.read("2-results/meteorology/meteo_towe_combined.csv", missingstrings=["NA", "NaN"], DataFrame)  # Benin
-meteo_comb_presco = CSV.read("2-results/meteorology/meteo_presco_combined.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria
+meteo_comb_smse = CSV.read("2-results/meteorology/meteo_smse_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Indonesia
+meteo_comb_towe = CSV.read("2-results/meteorology/meteo_towe_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Benin
+meteo_comb_presco = CSV.read("2-results/meteorology/meteo_presco_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria
 
 sites_comb = Dict(
     "SMSE" => meteo_comb_smse,
@@ -88,15 +92,57 @@ for (sitename, df) in sites_comb
     df_meteo_long_comb = vcat(df_meteo_long_comb, temp_df; cols=:union)
 end
 
-#plot combined Humidity (not beautiful, should divided by year only)
-hum_vars_comb = [:Rh, :Rh_max, :Rh_min]
-hum_stacked_comb.year = year.(hum_stacked_comb.date)
-hum_stacked_comb.year_str = string.(hum_stacked_comb.year)
+#plot Temperature
+temp_vars = [:T, :Tmin, :Tmax]
+temp_stacked_comb = stack(df_meteo_long_comb, temp_vars; variable_name=:variable, value_name=:value)
+temp_stacked_comb.site_group = ifelse.(temp_stacked_comb.site .== "nursery", "nursery", string.(temp_stacked_comb.site))
+temp_stacked_comb.period = coalesce.(temp_stacked_comb.period, "planting")  # Fill missing period values if any
+plt_temp_comb_MAP = data(temp_stacked_comb) *
+                    mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
+                    visual(Lines)
+fig_temp_comb_MAP = draw(plt_temp_comb_MAP; figure=(; title="Temperature with nursery"), axis=(; ylabel="°C"))
+save("2-results/meteorology/plot_temperature_by_MAP.png", fig_temp_comb_MAP)
+
+#plot Humidity
+hum_vars = [:Rh, :Rh_min, :Rh_max]
+hum_stacked_comb = stack(df_meteo_long_comb, hum_vars; variable_name=:variable, value_name=:value)
 hum_stacked_comb.site_group = ifelse.(hum_stacked_comb.site .== "nursery", "nursery", string.(hum_stacked_comb.site))
+hum_stacked_comb.period = coalesce.(hum_stacked_comb.period, "planting")  # Fill missing period values if any
+plt_hum_comb_MAP = data(hum_stacked_comb) *
+                   mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
+                   visual(Lines)
+fig_hum_comb_MAP = draw(plt_hum_comb_MAP; figure=(; title="Humidity with nursery"), axis=(; ylabel="%"))
+save("2-results/meteorology/plot_humidity_by_MAP.png", fig_hum_comb_MAP)
 
-plt_hum_comb = data(hum_stacked_comb) *
-               mapping(:date, :value, color=:site_group, linestyle=:period, row=:variable) *
-               visual(Lines)
+#plot Radiation
+rad_vars = [:Ri_PAR_f, :Rg]
+rad_stacked_comb = stack(df_meteo_long_comb, rad_vars; variable_name=:variable, value_name=:value)
+rad_stacked_comb.site_group = ifelse.(rad_stacked_comb.site .== "nursery", "nursery", string.(rad_stacked_comb.site))
+rad_stacked_comb.period = coalesce.(rad_stacked_comb.period, "planting")  # Fill missing period values if any
+plt_rad_comb_MAP = data(rad_stacked_comb) *
+                   mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
+                   visual(Lines)
+fig_rad_comb_MAP = draw(plt_rad_comb_MAP; figure=(; title="Radiation with nursery"), axis=(; ylabel="J/kg"))
+save("2-results/meteorology/plot_radiation_by_MAP.png", fig_rad_comb_MAP)
 
-fig = draw(plt_hum_comb)
+#plot precipitations
+prec_vars = [:Precipitations]
+prec_stacked_comb = stack(df_meteo_long_comb, prec_vars; variable_name=:variable, value_name=:value)
+prec_stacked_comb.site_group = ifelse.(prec_stacked_comb.site .== "nursery", "nursery", string.(prec_stacked_comb.site))
+prec_stacked_comb.period = coalesce.(prec_stacked_comb.period, "planting")  # Fill missing period values if any
+plt_prec_comb_MAP = data(prec_stacked_comb) *
+                    mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
+                    visual(Lines)
+fig_prec_comb_MAP = draw(plt_prec_comb_MAP; figure=(; title="Precipitations with nursery"), axis=(; ylabel="mm"))
+save("2-results/meteorology/plot_precipitation_by_MAP.png", fig_temp_comb_MAP)
 
+#plot wind
+wind_vars = [:Wind]
+wind_stacked_comb = stack(df_meteo_long_comb, wind_vars; variable_name=:variable, value_name=:value)
+wind_stacked_comb.site_group = ifelse.(wind_stacked_comb.site .== "nursery", "nursery", string.(wind_stacked_comb.site))
+wind_stacked_comb.period = coalesce.(wind_stacked_comb.period, "planting")  # Fill missing period values if any
+plt_wind_comb_MAP = data(wind_stacked_comb) *
+                    mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
+                    visual(Lines)
+fig_wind_comb_MAP = draw(plt_wind_comb_MAP; figure=(; title="Wind with nursery"), axis=(; ylabel="m/s"))
+save("2-results/meteorology/plot_wind_by_MAP.png", fig_wind_comb_MAP)
