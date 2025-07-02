@@ -64,6 +64,14 @@ select_pred_presco.Precipitations[select_pred_presco.Precipitations.>200] .= mea
 select_pred_presco.TAverage[select_pred_presco.TAverage.<18] .= mean(skipmissing(select_pred_presco.TAverage))
 select_pred_presco.Tmax[select_pred_presco.Tmax.<18] .= mean(skipmissing(select_pred_presco.Tmax))
 
+#special for humidity for the too fluctuated
+start_eror = Date("2018-03-01")
+end_eror = Date("2023-06-11")
+mask_date = (select_pred_presco.date .>= start_eror) .& (select_pred_presco.date .<= end_eror)
+select_pred_presco.Rh_min[mask_date] .= select_pred_presco.Rh_min_pred[mask_date]
+select_pred_presco.Rh_max[mask_date] .= select_pred_presco.Rh_max_pred[mask_date]
+select_pred_presco.HRAverage[mask_date] .= select_pred_presco.RhAverage_pred[mask_date]
+
 #exception for wind and Ri_PAR_f since they are not predicted
 avg_wind = mean(skipmissing(select_pred_presco.Wind))
 
