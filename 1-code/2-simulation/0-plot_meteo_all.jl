@@ -3,7 +3,7 @@ Plot all the meteo datasets from 3 sites (actual period and added by nursery per
 """
 
 using XPalm, DataFrames, YAML, CSV
-using CairoMakie, AlgebraOfGraphics
+using CairoMakie, AlgebraOfGraphics, Colors
 
 #plot the actual climate conditions of the three sites
 
@@ -60,8 +60,8 @@ prec_stacked = stack(df_meteo_long, prec_vars; variable_name=:variable, value_na
 plt_prec = data(prec_stacked) *
            mapping(:date, :value, color=:site, row=:variable) *
            visual(Lines)
-fug_plt_prec = draw(plt_prec; figure=(; title="Precipitations"))
-save("2-results/meteorology/plot_precipitations.png", fug_plt_prec)
+fig_plt_prec = draw(plt_prec; figure=(; title="Precipitations"))
+save("2-results/meteorology/plot_precipitations.png", fig_plt_prec)
 
 #plot wind
 wind_vars = [:Wind]
@@ -122,7 +122,7 @@ rad_stacked_comb.period = coalesce.(rad_stacked_comb.period, "planting")  # Fill
 plt_rad_comb_MAP = data(rad_stacked_comb) *
                    mapping(:MAP, :value, color=:site_group, linestyle=:period, row=:variable) *
                    visual(Lines)
-fig_rad_comb_MAP = draw(plt_rad_comb_MAP; figure=(; title="Radiation with nursery"), axis=(; ylabel="J/kg"))
+fig_rad_comb_MAP = draw(plt_rad_comb_MAP; figure=(; title="Radiation with nursery"), axis=(; ylabel="MJ.m-2.day-1"))
 save("2-results/meteorology/plot_radiation_by_MAP.png", fig_rad_comb_MAP)
 
 #plot precipitations
@@ -146,3 +146,40 @@ plt_wind_comb_MAP = data(wind_stacked_comb) *
                     visual(Lines)
 fig_wind_comb_MAP = draw(plt_wind_comb_MAP; figure=(; title="Wind with nursery"), axis=(; ylabel="m/s"))
 save("2-results/meteorology/plot_wind_by_MAP.png", fig_wind_comb_MAP)
+
+#plot climate all
+climate_vars = [:T, :Ri_PAR_f, :Rg, :Rh, :Precipitations, :Wind]
+climate_stacked_comb = stack(df_meteo_long_comb, climate_vars; variable_name=:variable, value_name=:value)
+
+climate_vars = ["Precipitations", "Rg", "Rh", "Ri_PAR_f", "T", "Wind"]
+labels = Dict(
+    "T" => "Temperature (°C)",
+    "Ri_PAR_f" => "PAR Radiation (µmol/m²/s)",
+    "Rg" => "Global Radiation (MJ/m²)",
+    "Rh" => "Relative Humidity (%)",
+    "Precipitations" => "Rainfall (mm)",
+    "Wind" => "Wind (m/s)"
+)
+
+sites = ["PRESCO", "SMSE", "TOWE"]
+colors = Dict("PRESCO" => :blue, "SMSE" => :orange, "TOWE" => :green)
+
+
+fig = Figure(resolution=(1600, 1200))
+
+for (i, var) in enumerate(climate_vars)
+    for (j, site) in enumerate(sites)
+        df_plot = filter(row -> row.variable == var && row.site == site, climate_stacked_comb)
+
+        ax = Axis(fig[i, j],
+            xlabel=i == length(climate_vars) ? "MAP" : "",
+            ylabel=j == 1 ? labels[var] : "",
+            title=i == 1 ? site : ""
+        )
+
+        lines!(ax, df_plot.MAP, df_plot.value, color=colors[site])
+    end
+end
+
+fig
+save("2-results/meteorology/plot_climate_all.png", fig)
