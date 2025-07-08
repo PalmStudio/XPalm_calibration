@@ -148,10 +148,9 @@ fig_wind_comb_MAP = draw(plt_wind_comb_MAP; figure=(; title="Wind with nursery")
 save("2-results/meteorology/plot_wind_by_MAP.png", fig_wind_comb_MAP)
 
 #plot climate all
-climate_vars = [:T, :Ri_PAR_f, :Rg, :Rh, :Precipitations, :Wind]
-climate_stacked_comb = stack(df_meteo_long_comb, climate_vars; variable_name=:variable, value_name=:value)
 
 climate_vars = ["Precipitations", "Rg", "Rh", "Ri_PAR_f", "T", "Wind"]
+climate_stacked_comb = stack(df_meteo_long_comb, climate_vars; variable_name=:variable, value_name=:value)
 labels = Dict(
     "T" => "Temperature (°C)",
     "Ri_PAR_f" => "PAR Radiation (µmol/m²/s)",
@@ -163,9 +162,9 @@ labels = Dict(
 
 sites = ["PRESCO", "SMSE", "TOWE"]
 colors = Dict("PRESCO" => :blue, "SMSE" => :orange, "TOWE" => :green)
-
-
 fig = Figure(resolution=(1600, 1200))
+
+axes_per_var = [Axis[] for _ in climate_vars]  # ← ini penting
 
 for (i, var) in enumerate(climate_vars)
     for (j, site) in enumerate(sites)
@@ -178,8 +177,20 @@ for (i, var) in enumerate(climate_vars)
         )
 
         lines!(ax, df_plot.MAP, df_plot.value, color=colors[site])
+        push!(axes_per_var[i], ax)  # ← simpan axis ke dalam variabelnya
     end
 end
 
+
+for ax_row in axes_per_var
+    linkaxes!(:y, ax_row...)
+end
+
+dummy_lines = [LineElement(color=colors[site]) for site in sites]
+Legend(fig[end+1, 1:length(sites)],
+    dummy_lines, sites,
+    orientation=:horizontal, tellwidth=false, tellheight=true
+)
+
 fig
-save("2-results/meteorology/plot_climate_all.png", fig)
+save("2-results/meteorology/plot_climate_all_2.png", fig)
