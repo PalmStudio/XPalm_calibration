@@ -164,7 +164,7 @@ rachis_tree = data(clean_rachis) *
               mapping(:MAP, :RachisLengthMAP, color=:TreeId, col=:IdGenotype, row=:Site) *
               visual(Lines)
 fig_rachis_tree = draw(rachis_tree; axis=(; xlabel="Month after planting", ylabel="Rachis length (cm)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/sensitivity/CIGE/LAI_tree.png", fig_rachis_tree)
+save("2-results/sensitivity/CIGE/rachis_tree.png", fig_rachis_tree)
 
 #Leaflet length
 comb_leaflet = transform(group_leaf_treeId)
@@ -183,7 +183,7 @@ avg_leaflet_width = data(clean_avg_width) *
                     mapping(:MAP, :avg_leaflet_width, color=:TreeId, col=:IdGenotype, row=:Site) *
                     visual(Lines)
 fig_avg_leaflet_width = draw(avg_leaflet_width; axis=(; xlabel="Month after planting", ylabel="Leaflet width (cm)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=5, nbanks=3))
-save("2-results/sensitivity/CIGE/avg_leaflet_length_tree.png", fig_avg_leaflet_width)
+save("2-results/sensitivity/CIGE/avg_leaflet_width_tree.png", fig_avg_leaflet_width)
 
 
 "stem growth"
