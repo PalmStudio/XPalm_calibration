@@ -3,7 +3,7 @@ Plot all the meteo datasets from 3 sites (actual period and added by nursery per
 """
 
 using XPalm, DataFrames, YAML, CSV
-using CairoMakie, AlgebraOfGraphics, Colors
+using CairoMakie, AlgebraOfGraphics, Colors, Dates, StatsPlots, Statistics
 
 #plot the actual climate conditions of the three sites
 
@@ -75,8 +75,8 @@ save("2-results/meteorology/plot_wind.png", fig_plt_wind)
 
 #plot the climate conditions depending on the nursery and planting of the three sites
 meteo_comb_smse = CSV.read("2-results/meteorology/meteo_smse_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Indonesia
-meteo_comb_towe = CSV.read("2-results/meteorology/meteo_towe_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Benin
-meteo_comb_presco = CSV.read("2-results/meteorology/meteo_presco_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria
+meteo_comb_towe = CSV.read("2-results/meteorology/meteo_towe_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria
+meteo_comb_presco = CSV.read("2-results/meteorology/meteo_presco_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Benin
 
 sites_comb = Dict(
     "SMSE" => meteo_comb_smse,
@@ -149,11 +149,10 @@ save("2-results/meteorology/plot_wind_by_MAP.png", fig_wind_comb_MAP)
 
 #plot climate all
 
-climate_vars = ["Precipitations", "Rg", "Rh", "Ri_PAR_f", "T", "Wind"]
+climate_vars = ["Precipitations", "Rg", "Rh", "T", "Wind"]
 climate_stacked_comb = stack(df_meteo_long_comb, climate_vars; variable_name=:variable, value_name=:value)
 labels = Dict(
     "T" => "Temperature (°C)",
-    "Ri_PAR_f" => "PAR Radiation (µmol/m²/s)",
     "Rg" => "Global Radiation (MJ/m²)",
     "Rh" => "Relative Humidity (%)",
     "Precipitations" => "Rainfall (mm)",
@@ -164,7 +163,7 @@ sites = ["PRESCO", "SMSE", "TOWE"]
 colors = Dict("PRESCO" => :blue, "SMSE" => :orange, "TOWE" => :green)
 fig = Figure(resolution=(1600, 1200))
 
-axes_per_var = [Axis[] for _ in climate_vars]  # ← ini penting
+axes_per_var = [Axis[] for _ in climate_vars]
 
 for (i, var) in enumerate(climate_vars)
     for (j, site) in enumerate(sites)
@@ -177,7 +176,7 @@ for (i, var) in enumerate(climate_vars)
         )
 
         lines!(ax, df_plot.MAP, df_plot.value, color=colors[site])
-        push!(axes_per_var[i], ax)  # ← simpan axis ke dalam variabelnya
+        push!(axes_per_var[i], ax)
     end
 end
 
@@ -193,4 +192,186 @@ Legend(fig[end+1, 1:length(sites)],
 )
 
 fig
-save("2-results/meteorology/plot_climate_all_2.png", fig)
+save("2-results/meteorology/plot_climate_all.png", fig)
+# save("2-results/meteorology/plot_climate_all_2.png", fig)
+# save("2-results/meteorology/plot_climate_all_3.png", fig) # change the first rainfall presco eror ith correspodnd month after
+# save("2-results/meteorology/plot_climate_all_4.png", fig) # change the first climate all presco eror ith correspodnd month after
+
+#compare before and after replacement (daily)
+meteo_comb_presco_replace = CSV.read("2-results/meteorology/meteo_presco_with_nursery_replace_climate.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria replace the climate
+meteo_comb_presco = CSV.read("2-results/meteorology/meteo_presco_with_nursery_before_replace.csv", missingstrings=["NA", "NaN"], DataFrame)  # Nigeria
+meteo_comb_smse = CSV.read("2-results/meteorology/meteo_smse_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Indonesia
+meteo_comb_towe = CSV.read("2-results/meteorology/meteo_towe_with_nursery.csv", missingstrings=["NA", "NaN"], DataFrame)  # Benin
+
+climate_vars = ["Precipitations", "Rg", "Rh", "T", "Wind"]
+sites_comb = Dict(
+    "PRESCO_replace" => meteo_comb_presco_replace,
+    "PRESCO" => meteo_comb_presco,
+    "SMSE" => meteo_comb_smse,
+    "TOWE" => meteo_comb_towe,
+)
+
+df_meteo_long_comb = DataFrame()
+
+for (sitename, df) in sites_comb
+    temp_df = copy(df)
+    temp_df.site = fill(sitename, nrow(temp_df))
+    df_meteo_long_comb = vcat(df_meteo_long_comb, temp_df; cols=:union)
+end
+
+climate_stacked_comb = stack(df_meteo_long_comb, climate_vars; variable_name=:variable, value_name=:value)
+
+#plot the based on MAP
+grouped_sites = Dict(
+    "PRESCO Group" => ["PRESCO_replace", "PRESCO"],
+    "SMSE" => ["SMSE"],
+    "TOWE" => ["TOWE"]
+)
+
+# Custom colors per site
+colors = Dict(
+    "PRESCO_replace" => :blue,
+    "PRESCO" => :lightblue,
+    "TOWE" => :green,
+    "SMSE" => :orange
+)
+
+linestyles = Dict(
+    "PRESCO_replace" => :solid,
+    "PRESCO" => :solid,
+    "TOWE" => :solid,
+    "SMSE" => :solid
+)
+
+labels = Dict(
+    "T" => "Temperature (°C)",
+    "Rg" => "Global Radiation (MJ/m²)",
+    "Rh" => "Relative Humidity (%)",
+    "Precipitations" => "Rainfall (mm)",
+    "Wind" => "Wind (m/s)"
+)
+
+fig = Figure(resolution=(1600, 1200))
+climate_plot_vars = climate_vars
+axes_per_var = [Axis[] for _ in climate_plot_vars]
+
+for (i, var) in enumerate(climate_plot_vars)
+    j = 1
+    for (groupname, sites) in grouped_sites
+        ax = Axis(fig[i, j],
+            #xlabel=i == length(climate_plot_vars) && j == 2 ? : "",  # show MAP only on middle column
+            ylabel=j == 1 ? labels[var] : "",
+            title=i == 1 ? groupname : ""
+        )
+
+        for site in sites
+            df_plot = filter(row -> row.variable == var && row.site == site, climate_stacked_comb)
+            lines!(ax, df_plot.MAP, df_plot.value;
+                color=colors[site],
+                linestyle=linestyles[site],
+                linewidth=2,
+                label=site
+            )
+        end
+
+        axislegend(ax, position=:rb, framevisible=false)
+        push!(axes_per_var[i], ax)
+        j += 1
+    end
+end
+
+# Link y-axes for same variable (row)
+for ax_row in axes_per_var
+    linkaxes!(:y, ax_row...)
+end
+
+fig #cek here
+save("2-results/meteorology/comparison_climate_daily_all.png", fig)
+
+#plot annual climate conditions of the three sites
+df_meteo_long_comb.date = Date.(df_meteo_long_comb.date)
+df_meteo_long_comb.year = year.(df_meteo_long_comb.date)
+
+using DataFrames, CSV, Dates, StatsPlots, Statistics
+
+annual_meteo = combine(groupby(df_meteo_long_comb, [:site, :year]),
+    :Precipitations => sum => :total_precip,
+    :Rg => mean => :mean_Rg,
+    :Rh => mean => :mean_Rh,
+    :T => mean => :mean_T,
+    :Wind => mean => :mean_Wind,
+)
+
+annual_meteo.year = Int.(annual_meteo.year)
+
+climate_annual_vars = ["total_precip", "mean_Rg", "mean_Rh", "mean_T", "mean_Wind"]
+rename_labels = Dict(
+    "total_precip" => "Rainfall (mm)",
+    "mean_Rg" => "Global Radiation (MJ/m²)",
+    "mean_Rh" => "Relative Humidity (%)",
+    "mean_T" => "Temperature (°C)",
+    "mean_Wind" => "Wind (m/s)"
+)
+
+annual_stacked = stack(annual_meteo, climate_annual_vars; variable_name=:variable, value_name=:value)
+
+# Group PRESCO and PRESCO_bf_replace into one box
+grouped_sites = Dict(
+    "PRESCO Group" => ["PRESCO", "PRESCO_replace"],
+    "TOWE" => ["TOWE"],
+    "SMSE" => ["SMSE"]
+)
+
+# Custom colors per site
+colors = Dict(
+    "PRESCO" => :lightblue,
+    "PRESCO_replace" => :blue,
+    "TOWE" => :green,
+    "SMSE" => :orange
+)
+
+linestyles = Dict(
+    "PRESCO" => :solid,
+    "PRESCO_replace" => :solid,
+    "TOWE" => :solid,
+    "SMSE" => :solid
+)
+
+fig2 = Figure(resolution=(1600, 1200))
+climate_plot_vars = climate_annual_vars
+axes_per_var = [Axis[] for _ in climate_plot_vars]
+
+for (i, var) in enumerate(climate_plot_vars)
+    j = 1
+    for (groupname, sites) in grouped_sites
+        ax = Axis(fig2[i, j],
+            xlabel=i == length(climate_plot_vars) ? "Year" : "",
+            ylabel=j == 1 ? rename_labels[var] : "",
+            title=i == 1 ? groupname : ""
+        )
+
+        for site in sites
+            df_plot = filter(row -> row.variable == var && row.site == site, annual_stacked)
+            lines!(ax, df_plot.year, df_plot.value;
+                color=colors[site],
+                linestyle=linestyles[site],
+                linewidth=2,
+                label=site
+            )
+        end
+
+        axislegend(ax, position=:rb, framevisible=false)
+        push!(axes_per_var[i], ax)
+        j += 1
+    end
+end
+
+# Link y-axes for same variable (row)
+for ax_row in axes_per_var
+    linkaxes!(:y, ax_row...)
+end
+
+fig2
+save("2-results/meteorology/comparison_climate_annual_all.png", fig2)
+#save("2-results/meteorology/plot_climate_annual_all.png", fig)
+#save("2-results/meteorology/plot_climate_annual_all_before_fill_presco.png", fig)
