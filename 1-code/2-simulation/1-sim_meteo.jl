@@ -76,6 +76,9 @@ CSV.write("2-results/simulations/sim_comparison_soil.csv", dfs_all)
 
 #plot the comparison of number of ftsw < 0.3 within the sites in bar plot
 df_ftsw = CSV.read("2-results/simulations/sim_comparison_soil.csv", missingstring=["NA", "NaN"], DataFrame)
+data(df_ftsw) * mapping(:timestep, :ftsw, color=:Site) * visual(Lines) |> draw
+
+
 threshold_ftsw = 0.3
 #drop the rows in :ftsw that is 0
 df_ftsw = df_ftsw[df_ftsw.ftsw.>0, :]
@@ -84,6 +87,3 @@ df_valid_count = combine(groupby(df_valid, :Site), nrow => :n_ftsw)
 
 plt_ftsw = data(df_valid_count) * mapping(:Site, :n_ftsw) * visual(BarPlot)
 draw(plt_ftsw)
-
-data(df_ftsw) * mapping(:timestep, :ftsw, color=:Site) * visual(Lines) |> draw
-
