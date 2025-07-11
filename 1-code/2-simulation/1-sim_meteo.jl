@@ -1,6 +1,5 @@
-"""
-This is XPalm simulation for sites comparison to plot the considered parameters
-"""
+# This is XPalm simulation for sites comparison to plot the considered parameters
+
 using XPalm
 using PlantMeteo
 using PlantSimEngine
@@ -63,7 +62,7 @@ begin
     for m in meteos
         site = m[1].site
         palm = XPalm.Palm(parameters=params[site])
-        df = xpalm(meteo, DataFrame, vars=out_vars, palm=palm)
+        df = xpalm(m, DataFrame, vars=out_vars, palm=palm)
         df = df["Soil"]
         df[!, "Site"] .= site
         push!(simulations, df)
@@ -72,6 +71,7 @@ end
 
 dfs_all = vcat(simulations...)
 
+mkpath("2-results/simulations")
 CSV.write("2-results/simulations/sim_comparison_soil.csv", dfs_all)
 
 #plot the comparison of number of ftsw < 0.3 within the sites in bar plot
@@ -84,3 +84,6 @@ df_valid_count = combine(groupby(df_valid, :Site), nrow => :n_ftsw)
 
 plt_ftsw = data(df_valid_count) * mapping(:Site, :n_ftsw) * visual(BarPlot)
 draw(plt_ftsw)
+
+data(df_ftsw) * mapping(:timestep, :ftsw, color=:Site) * visual(Lines) |> draw
+
