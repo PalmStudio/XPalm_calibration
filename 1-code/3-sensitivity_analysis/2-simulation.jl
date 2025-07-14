@@ -14,7 +14,7 @@ meteos = Dict(i => CSV.read("2-results/meteorology/meteo_$(i)_with_nursery.csv",
 # Import the template YAML file:
 template_yaml = "0-data/xpalm_parameters.yml"
 # Load the template YAML file:
-template_parameters = YAML.load_file(template_yaml; dicttype=Dict{Symbol,Any})
+template_parameters = YAML.load_file(template_yaml; dicttype=Dict{String,Any})
 
 # Importing the design of experiment (DOE) for the sensitivity analysis:
 doe = CSV.read("2-results/sensitivity/doe.csv", DataFrame)
@@ -34,12 +34,12 @@ function set_nested!(dict::D, path::Vector{<:AbstractString}, value) where D<:Ab
     d[path[end]] = value
 end
 
-function set_nested!(dict::D, path::Vector{<:AbstractString}, value) where D<:Dict{Symbol,Any}
+function set_nested!(dict::D, path::Vector{<:AbstractString}, value) where D<:Dict{String,Any}
     d = dict
     for k in path[1:end-1]
-        d = d[Symbol(k)]
+        d = d[k]
     end
-    d[Symbol(path[end])] = value
+    d[path[end]] = value
 end
 
 
@@ -79,8 +79,8 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
     # YAML.write_file("xpalm_parameters_$i.yml", parameters) # Un-comment to write the parameters to a YAML file
 
     for site in sites # site = sites[1]
-        parameters[:plot][:latitude] = latitude[site]
-        parameters[:plot][:altitude] = altitude[site]
+        parameters["plot"]["latitude"] = latitude[site]
+        parameters["plot"]["altitude"] = altitude[site]
 
         # sim = xpalm(meteos[site], DataFrame; vars=out_vars, palm=XPalm.Palm(initiation_age=0, parameters=parameters))
         palm = XPalm.Palm(initiation_age=0, parameters=parameters)
@@ -174,20 +174,20 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             # Computing the annual yield of each year in the age range 3 to 6 in t ha-1 year-1:
             df_yield_age_3_to_6 = combine(
                 groupby(subset(sim["Plant"], :year => ByRow(y -> 3 <= y < 6), view=true), :year),
-                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0)) => :biomass_bunch_harvested
             )
             yield_3_to_6_average = mean(df_yield_age_3_to_6[!, :biomass_bunch_harvested])
             yield_3_to_6_std_relative = std(df_yield_age_3_to_6[!, :biomass_bunch_harvested]) / yield_3_to_6_average
 
             df_yield_age_6_to_9 = combine(
                 groupby(subset(sim["Plant"], :year => ByRow(y -> 6 <= y < 9), view=true), :year),
-                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0)) => :biomass_bunch_harvested
             )
             yield_6_to_9_average = mean(df_yield_age_6_to_9[!, :biomass_bunch_harvested])
             yield_6_to_9_std_relative = std(df_yield_age_6_to_9[!, :biomass_bunch_harvested]) / yield_6_to_9_average
             df_yield_age_9_to_12 = combine(
                 groupby(subset(sim["Plant"], :year => ByRow(y -> 9 <= y < 12), view=true), :year),
-                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0)) => :biomass_bunch_harvested
+                :biomass_bunch_harvested => (x -> sum(x) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0)) => :biomass_bunch_harvested
             )
             yield_9_to_12_average = mean(df_yield_age_9_to_12[!, :biomass_bunch_harvested])
             yield_9_to_12_std_relative = std(df_yield_age_9_to_12[!, :biomass_bunch_harvested]) / yield_9_to_12_average
@@ -219,8 +219,8 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
 
         simulations[site][i] = Dict(
             "doe" => i, "site" => site,
-            "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated yield in t ha-1 over the whole simulation
-            "average_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters[:plot][:scene_area] / 10000.0) / (nrow(sim["Plant"]) / 365), # Cumulated yield in t ha-1 year-1
+            "cumulated_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0), # Cumulated yield in t ha-1 over the whole simulation
+            "average_yield" => sim["Plant"].biomass_bunch_harvested_cum[end] * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0) / (nrow(sim["Plant"]) / 365), # Cumulated yield in t ha-1 year-1
             "average_yield_3_to_6" => yield_3_to_6_average, # Average yield in t ha-1 year-1 in the age range
             "average_yield_6_to_9" => yield_6_to_9_average,
             "average_yield_9_to_12" => yield_9_to_12_average,
@@ -274,9 +274,9 @@ simulations = Dict(site => Vector{Dict{String,Any}}(undef, N) for site in sites)
             "average_n_fruits_9_to_12" => average_number_fruits_9_to_12,
             "potential_n_fruits" => potential_number_fruits,
             "potential_fruits_biomass" => potential_fruits_biomass,
-            "harvested_oil_cum_3_to_6" => sum(sim["Plant"].biomass_oil_harvested[(index_age_3_to_6)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0), # Cumulated harvested oil in the age range in t ha-1
-            "harvested_oil_cum_6_to_9" => sum(sim["Plant"].biomass_oil_harvested[(index_age_6_to_9)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0),
-            "harvested_oil_cum_9_to_12" => sum(sim["Plant"].biomass_oil_harvested[(index_age_9_to_12)]) * 1e-6 / (parameters[:plot][:scene_area] / 10000.0),
+            "harvested_oil_cum_3_to_6" => sum(sim["Plant"].biomass_oil_harvested[(index_age_3_to_6)]) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0), # Cumulated harvested oil in the age range in t ha-1
+            "harvested_oil_cum_6_to_9" => sum(sim["Plant"].biomass_oil_harvested[(index_age_6_to_9)]) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0),
+            "harvested_oil_cum_9_to_12" => sum(sim["Plant"].biomass_oil_harvested[(index_age_9_to_12)]) * 1e-6 / (parameters["plot"]["scene_area"] / 10000.0),
             "yield_gap_oil_3_to_6" => mean(sim["Plant"].yield_gap_oil[index_age_3_to_6]),
             "yield_gap_oil_6_to_9" => mean(sim["Plant"].yield_gap_oil[index_age_6_to_9]),
             "yield_gap_oil_9_to_12" => mean(sim["Plant"].yield_gap_oil[index_age_9_to_12]),
@@ -290,7 +290,9 @@ df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
 # df_simulations = vcat([DataFrame([i[j] for j in 1:length(i) if isassigned(i, j)]) for i in values(simulations)]...)
 
 #CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
-CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
+#CSV.write("2-results/sensitivity/simulations_on_doe_presco_2.csv", df_simulations) #change the wind missing to 2
+#CSV.write("2-results/sensitivity/simulations_on_doe_presco_3.csv", df_simulations) #change the rainfall first period to the normal value after in the same month
+CSV.write("2-results/sensitivity/simulations_on_doe_presco_4.csv", df_simulations) #change the all climate first period to the normal value after in the same month
 
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.
