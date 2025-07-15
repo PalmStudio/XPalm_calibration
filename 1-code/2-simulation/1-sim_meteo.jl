@@ -96,5 +96,5 @@ df_valid_count = combine(groupby(df_valid, [:Site, :MAP]), nrow => :n_ftsw)
 plt_ftsw = data(df_valid_count) *
            mapping(:MAP, :n_ftsw, color=:Site) *
            visual(Lines)
-draw(plt_ftsw)
-save("2-results/simulations/n_ftsw.png", plt_ftsw)
+fig_n_ftsw = draw(plt_ftsw)
+save("2-results/simulations/n_ftsw.png", fig_n_ftsw)
