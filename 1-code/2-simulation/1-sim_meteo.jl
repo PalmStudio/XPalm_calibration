@@ -87,13 +87,10 @@ CSV.write("2-results/simulations/sim_comparison_soil.csv", dfs_all)
 df_ftsw = CSV.read("2-results/simulations/sim_comparison_soil.csv", missingstring=["NA", "NaN"], DataFrame)
 data(df_ftsw) * mapping(:MAP, :ftsw, color=:Site) * visual(Lines) |> draw
 
-
 threshold_ftsw = 0.3
-df_ftsw = df_ftsw[df_ftsw.ftsw.>0, :] #drop the rows in :ftsw that is 0
-df_valid = df_ftsw[df_ftsw.ftsw.<threshold_ftsw, :]
-df_valid_count = combine(groupby(df_valid, [:Site, :MAP]), nrow => :n_ftsw)
+df_count_ftsw_stress = combine(groupby(df_ftsw, [:Site, :MAP]), :ftsw => (x -> sum(0.0 .< x .< threshold_ftsw)) => :n_ftsw)
 
-plt_ftsw = data(df_valid_count) *
+plt_ftsw = data(df_count_ftsw_stress) *
            mapping(:MAP, :n_ftsw, color=:Site) *
            visual(Lines)
 fig_n_ftsw = draw(plt_ftsw)
