@@ -26,6 +26,7 @@ function year_planting!(df::DataFrame, map_col::Symbol)
 end
 
 year_planting!(df_bunch_component, :HarvestMAP)
+rename!(df_bunch_component, :HarvestMAP => :MAP)
 year_planting!(df_leaf_growth, :MAP)
 year_planting!(df_stem_growth, :MAP)
 
@@ -75,7 +76,7 @@ year_planting_2!(df_phenology)
 
 "Bunch Component"
 filter_bunch = filter(row -> row.IdGenotype in genotype, df_bunch_component)
-group_bunch_treeId = groupby(filter_bunch, [:TreeId, :HarvestMAP, :Site])
+group_bunch_treeId = groupby(filter_bunch, [:TreeId, :MAP, :Site])
 
 #Cumulated production each tree 
 comb_prod = combine(group_bunch_treeId, :BunchMass => (x -> sum(skipmissing(x))) => :Production, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
@@ -87,14 +88,14 @@ first_prod_map = combine(groupby(cum_prod, :TreeId)) do subdf
         if nrow(valid_rows) == 0
                 return (TreeId=subdf.TreeId[1], start_month=Inf)
         else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.HarvestMAP))
+                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.MAP))
         end
 end
 valid_trees = filter(:start_month => x -> x ≤ 70, first_prod_map).TreeId
 cum_prod_cleaned = filter(:TreeId => x -> x in valid_trees, cum_prod)
 CSV.write("2-results/calibration/cumulated_production_mes.csv", cum_prod_cleaned)
 prod_tree = data(cum_prod_cleaned) *
-            mapping(:HarvestMAP, :CumulatedProduction_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
+            mapping(:MAP, :CumulatedProduction_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
             visual(Lines)
 fig_prod_tree = draw(prod_tree; axis=(; xlabel="Month after planting", ylabel="Cumulated yield (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/prod_tree.png", fig_prod_tree)
@@ -109,21 +110,21 @@ first_n_bunch_map = combine(groupby(cum_n_bunch, :TreeId)) do subdf
         if nrow(valid_rows) == 0
                 return (TreeId=subdf.TreeId[1], start_month=Inf)
         else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.HarvestMAP))
+                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.MAP))
         end
 end
 valid_trees_bunch = filter(:start_month => x -> x ≤ 70, first_n_bunch_map).TreeId
 cum_n_bunch_cleaned = filter(:TreeId => x -> x in valid_trees_bunch, cum_n_bunch)
 CSV.write("2-results/calibration/cumulated_n_bunch_mes.csv", cum_n_bunch_cleaned)
 n_bunch_tree = data(cum_n_bunch_cleaned) *
-               mapping(:HarvestMAP, :Cumulated_n_bunch_mes, col=:IdGenotype, row=:Site, color=:TreeId) *
+               mapping(:MAP, :Cumulated_n_bunch_mes, col=:IdGenotype, row=:Site, color=:TreeId) *
                visual(Lines)
 fig_n_bunch_tree = draw(n_bunch_tree; axis=(; xlabel="Month after planting", ylabel="Number of bunch"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/n_bunch_tree.png", fig_n_bunch_tree)
 
 #number of fruit yearly = number of fertile fruit + number of non-fertile fruit 
 n_of_fruit = transform(filter_bunch, [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit)
-sum_of_fruit = combine(groupby(n_of_fruit, [:TreeId, :HarvestMAP, :Site]), :n_of_fruit => (x -> sum(skipmissing(x))) => :sum_of_fruit, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
+sum_of_fruit = combine(groupby(n_of_fruit, [:TreeId, :MAP, :Site]), :n_of_fruit => (x -> sum(skipmissing(x))) => :sum_of_fruit, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
 clean_sum_fruit = dropmissing(sum_of_fruit, :sum_of_fruit)
 cum_n_fruit = transform(groupby(clean_sum_fruit, [:TreeId]), :sum_of_fruit => (x -> cumsum(skipmissing(x))) => :Cumulated_n_fruit_mes)
 #remove the late tree (delete the tree that just n bunch grow >50 MAP, remain only 4 progeny)
@@ -132,21 +133,21 @@ first_n_fruit_map = combine(groupby(cum_n_fruit, :TreeId)) do subdf
         if nrow(valid_rows) == 0
                 return (TreeId=subdf.TreeId[1], start_month=Inf)
         else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.HarvestMAP))
+                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.MAP))
         end
 end
 valid_trees_fruit = filter(:start_month => x -> x ≤ 70, first_n_fruit_map).TreeId
 cum_n_fruit_cleaned = filter(:TreeId => x -> x in valid_trees_fruit, cum_n_fruit)
 CSV.write("2-results/calibration/cumulated_n_fruit_mes.csv", cum_n_fruit_cleaned)
 fruit_tree = data(cum_n_fruit_cleaned) *
-             mapping(:HarvestMAP, :Cumulated_n_fruit_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
+             mapping(:MAP, :Cumulated_n_fruit_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
              visual(Lines)
 fig_fruit_tree = draw(fruit_tree; axis=(; xlabel="Month after planting", ylabel="Total number of fruit (tree/year)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3)) #GE03 and GE16 in presco and TOwE is not take into account of number of fruit 
 save("2-results/sensitivity/CIGE/n_fruit_tree.png", fig_fruit_tree)
 
 #stalk biomass per tree yearly
 stalk_biomass = transform(filter_bunch, [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_biomass)
-sum_stalk_biomass = combine(groupby(stalk_biomass, [:TreeId, :HarvestMAP, :Site]), :stalk_biomass => (x -> sum(skipmissing(x))) => :Stalk_biomass, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
+sum_stalk_biomass = combine(groupby(stalk_biomass, [:TreeId, :MAP, :Site]), :stalk_biomass => (x -> sum(skipmissing(x))) => :Stalk_biomass, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
 clean_sum_stalk_biomass = dropmissing(sum_stalk_biomass, :Stalk_biomass)
 cum_stalk_biomass = transform(groupby(clean_sum_stalk_biomass, [:TreeId]), :Stalk_biomass => (x -> cumsum(skipmissing(x))) => :Cumulated_stalk_biomass_mes)
 first_stalk_biomass = combine(groupby(cum_stalk_biomass, :TreeId)) do subdf
@@ -154,14 +155,14 @@ first_stalk_biomass = combine(groupby(cum_stalk_biomass, :TreeId)) do subdf
         if nrow(valid_rows) == 0
                 return (TreeId=subdf.TreeId[1], start_month=Inf)
         else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.HarvestMAP))
+                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.MAP))
         end
 end
 valid_trees_stalk = filter(:start_month => x -> x ≤ 70, first_stalk_biomass).TreeId
 cum_stalk_biomass_cleaned = filter(:TreeId => x -> x in valid_trees_stalk, cum_stalk_biomass)
 CSV.write("2-results/calibration/cumulated_stalk_biomass_mes.csv", cum_stalk_biomass_cleaned)
 sbiomass_tree = data(cum_stalk_biomass_cleaned) *
-                mapping(:HarvestMAP, :Cumulated_stalk_biomass_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
+                mapping(:MAP, :Cumulated_stalk_biomass_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
                 visual(Lines)
 fig_sbiomass_tree = draw(sbiomass_tree; axis=(; xlabel="Month after planting", ylabel="Biomass stalk"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3)) #GE03 and GE16 isnt avail too
 save("2-results/sensitivity/CIGE/cum_stalk_biomass.png", fig_sbiomass_tree)
@@ -175,14 +176,14 @@ first_biomass_oil = combine(groupby(cum_biomass_oil, :TreeId)) do subdf
         if nrow(valid_rows) == 0
                 return (TreeId=subdf.TreeId[1], start_month=Inf)
         else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.HarvestMAP))
+                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.MAP))
         end
 end
 valid_trees_oil = filter(:start_month => x -> x ≤ 70, first_biomass_oil).TreeId
 cum_biomass_oil_cleaned = filter(:TreeId => x -> x in valid_trees_oil, cum_biomass_oil)
 CSV.write("2-results/calibration/cumulated_biomass_oil_mes.csv", cum_biomass_oil_cleaned)
 obiomass_tree = data(cum_biomass_oil_cleaned) *
-                mapping(:HarvestMAP, :Cumulated_biomass_oil_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
+                mapping(:MAP, :Cumulated_biomass_oil_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
                 visual(Lines)
 fig_biomass_oil = draw(obiomass_tree; axis=(; xlabel="Month after planting", ylabel="Biomass oil content (%)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/cum_biomass_oil_mes.png", fig_biomass_oil)
