@@ -124,8 +124,10 @@ save("2-results/sensitivity/CIGE/n_bunch_tree.png", fig_n_bunch_tree)
 
 #number of fruit yearly = number of fertile fruit + number of non-fertile fruit 
 n_of_fruit = transform(filter_bunch, [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit)
-sum_of_fruit = combine(groupby(n_of_fruit, [:TreeId, :MAP, :Site]), :n_of_fruit => (x -> sum(skipmissing(x))) => :sum_of_fruit, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
+dropmissing!(n_of_fruit, :n_of_fruit)
+sum_of_fruit = combine(groupby(n_of_fruit, [:TreeId, :MAP, :Site, :PhytomerNumber]), :n_of_fruit => (x -> sum(skipmissing(x))) => :sum_of_fruit, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
 clean_sum_fruit = dropmissing(sum_of_fruit, :sum_of_fruit)
+sort!(clean_sum_fruit, [:TreeId, :MAP, :PhytomerNumber])
 cum_n_fruit = transform(groupby(clean_sum_fruit, [:TreeId]), :sum_of_fruit => (x -> cumsum(skipmissing(x))) => :Cumulated_n_fruit_mes)
 #remove the late tree (delete the tree that just n bunch grow >50 MAP, remain only 4 progeny)
 first_n_fruit_map = combine(groupby(cum_n_fruit, :TreeId)) do subdf
@@ -138,8 +140,15 @@ first_n_fruit_map = combine(groupby(cum_n_fruit, :TreeId)) do subdf
 end
 valid_trees_fruit = filter(:start_month => x -> x ≤ 70, first_n_fruit_map).TreeId
 cum_n_fruit_cleaned = filter(:TreeId => x -> x in valid_trees_fruit, cum_n_fruit)
-CSV.write("2-results/calibration/cumulated_n_fruit_mes.csv", cum_n_fruit_cleaned)
-fruit_tree = data(cum_n_fruit_cleaned) *
+
+cum_n_fruit_cleaned_MAP = combine(
+        groupby(cum_n_fruit_cleaned, [:TreeId, :MAP, :Site]),
+        :IdGenotype => first => :IdGenotype,
+        :sum_of_fruit => mean => :sum_of_fruit,
+        :Cumulated_n_fruit_mes => last => :Cumulated_n_fruit_mes
+)
+CSV.write("2-results/calibration/cumulated_n_fruit_mes.csv", cum_n_fruit_cleaned_MAP)
+fruit_tree = data(cum_n_fruit_cleaned_MAP) *
              mapping(:MAP, :Cumulated_n_fruit_mes, color=:TreeId, col=:IdGenotype, row=:Site) *
              visual(Lines)
 fig_fruit_tree = draw(fruit_tree; axis=(; xlabel="Month after planting", ylabel="Total number of fruit (tree/year)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3)) #GE03 and GE16 in presco and TOwE is not take into account of number of fruit 
@@ -336,9 +345,9 @@ save("2-results/sensitivity/CIGE/girth_towe_tree.png", fig_girth_towe)
 
 "phenology"
 filter_phenology = filter(row -> row.IdGenotype in genotype, df_phenology)
-group_pheno_phytomer = groupby(filter_phenology, [:TreeId, :PhytomerNumber, :RankOneLeafDate, :Site]) #!add tree id too
+group_pheno_phytomer = groupby(filter_phenology, [:TreeId, :PhytomerNumber, :Site]) #!add tree id too
 group_pheno_treeId = groupby(filter_phenology, [:TreeId, :RankOneLeafMAP, :Site])
-group_pheno_IdGenotype = groupby(filter_phenology, [:TreeId, :IdGenotype, :RankOneLeafMAP, :Site])
+group_pheno_IdGenotype = groupby(filter_phenology, [:TreeId, :RankOneLeafMAP, :Site])
 
 #cumulative number of newleaf emitted per tree
 n_count_tree = combine(group_pheno_treeId, :RankOneLeafMAP => (x -> count(!ismissing, x)) => :n_leaf_emitted, :IdGenotype => first => :IdGenotype, :RankOneLeafDate => unique => :Date)
@@ -392,7 +401,7 @@ save("2-results/sensitivity/CIGE/flowering_phytomer.png", fig_phytomer_flowering
 
 #time between leaf emission and flowering per progeny, per year, per site
 comb_IdGenotype_flowering = transform(group_pheno_IdGenotype, [:FloweringDate, :RankOneLeafDate] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :days_flowering_IdGenotype,)
-clean_IdGenotype_flowering = select(clean_IdGenotype_flowering, [:TreeId, :days_flowering_IdGenotype, :FloweringDate, :IdGenotype, :Site, :FloweringMAP])
+clean_IdGenotype_flowering = select(comb_IdGenotype_flowering, [:TreeId, :days_flowering_IdGenotype, :FloweringDate, :IdGenotype, :Site, :FloweringMAP])
 clean_IdGenotype_flowering = dropmissing(comb_IdGenotype_flowering, :days_flowering_IdGenotype)
 rename!(clean_IdGenotype_flowering, [:FloweringDate => :Date, :FloweringMAP => :MAP])
 CSV.write("2-results/calibration/time_leaf_flowering_IdGenotype.csv", clean_IdGenotype_flowering)
