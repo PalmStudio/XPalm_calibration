@@ -26,7 +26,10 @@ merged_bunch = outerjoin(mes_cum_biomass_oil,
     mes_cum_rachis_length,
     mes_avg_leaflet_length,
     mes_cum_n_new_leaf_emitted,
-    mes_time_between_leaf_flowering,
-    mes_flowering_time_IdGen,
+    mes_flowering_time_Phytomer,
+    # mes_flowering_time_IdGen,
     on=[:TreeId, :Date, :MAP, :Site, :IdGenotype], makeunique=true)
 sort!(merged_bunch, [:Site, :Date])
+
+
+# data(merged_bunch) *
