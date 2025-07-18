@@ -215,39 +215,70 @@ lai_tree = data(cum_LAI_cleaned) *
 fig_LAI_tree = draw(lai_tree; axis=(; xlabel="Month after planting", ylabel="Leaf area index (m2)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/LAI_tree.png", fig_LAI_tree)
 
-#rachis length #!something still weird to be continued 16072025 
-comb_rachis = combine(group_leaf_treeId, :RachisLength => (x -> sum(skipmissing(x))) => :RachisLengthMAP, :IdGenotype => unique => :IdGenotype)
+#rachis length 
+comb_rachis = combine(group_leaf_treeId, :RachisLength => (x -> sum(skipmissing(x))) => :RachisLengthMAP, :IdGenotype => first => :IdGenotype, :ObservationDate => unique => :Date)
 clean_rachis = dropmissing(comb_rachis, :RachisLengthMAP)
 
-#remove the late tree (delete the tree that just n bunch grow >50 MAP, remain only 4 progeny)
-first_rachis_map = combine(groupby(clean_rachis, :TreeId)) do subdf
-        valid_rows = filter(:Cumulated_rachis_length => x -> x > 0, subdf)
-        if nrow(valid_rows) == 0
-                return (TreeId=subdf.TreeId[1], start_month=Inf)
-        else
-                return (TreeId=subdf.TreeId[1], start_month=minimum(valid_rows.RachisLengthMAP))
-        end
-end
-valid_trees_rachis = filter(:start_month => x -> x ≤ 70, first_rachis_map).TreeId
-cum_rachis_cleaned = filter(:TreeId => x -> x in valid_trees_rachis, clean_rachis)
+#remove the strange tree
+tree_trend_stats = combine(groupby(clean_rachis, :TreeId)) do subdf
+        sorted = sort(subdf, :MAP)
+        rachis = collect(sorted.RachisLengthMAP)
 
-rachis_tree = data(cum_rachis_cleaned) *
+        if length(rachis) < 2
+                return (TreeId=subdf.TreeId[1], keep=true)  # Not enough data to judge steps
+        end
+
+        steps = diff(rachis)
+        worst_step = minimum(steps)
+        best_step = maximum(steps)
+
+        keep = !(worst_step ≤ -50 || best_step ≥ 150) # Drop if either a sudden drop OR a sudden spike is present
+
+        return (TreeId=subdf.TreeId[1], keep=keep)
+end
+
+valid_rachis_trees = filter(:keep => x -> x, tree_trend_stats).TreeId
+filter_rachis = filter(:TreeId => x -> x in valid_rachis_trees, clean_rachis)
+CSV.write("2-results/calibration/cumulated_rachis_length_mes.csv", filter_rachis)
+rachis_tree = data(filter_rachis) *
               mapping(:MAP, :RachisLengthMAP, color=:TreeId, col=:IdGenotype, row=:Site) *
               visual(Lines)
 fig_rachis_tree = draw(rachis_tree; axis=(; xlabel="Month after planting", ylabel="Rachis length (cm)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/rachis_tree.png", fig_rachis_tree)
 
-#Leaflet length
+#Leaflet length #!check in the note from Rémi does it we put from the base, midd, or top
 comb_leaflet = transform(group_leaf_treeId)
 comb_leaflet.avg_leaflet_length = mean.(eachrow(select(comb_leaflet, [:AverageLeafletSampleLengthBase, :AverageLeafletSampleLengthMidd, :AverageLeafletSampleLengthTop])))
 clean_avg_length = dropmissing(comb_leaflet, :avg_leaflet_length)
-avg_leaflet_length = data(clean_avg_length) *
+#remove the strange tree
+leaflet_trend_stats = combine(groupby(clean_avg_length, :TreeId)) do subdf
+        sorted = sort(subdf, :MAP)
+        rachis = collect(sorted.avg_leaflet_length)
+
+        if length(rachis) < 2
+                return (TreeId=subdf.TreeId[1], keep=true)  # Not enough data to judge steps
+        end
+
+        steps = diff(rachis)
+        worst_step = minimum(steps)
+        best_step = maximum(steps)
+
+        keep = !(worst_step ≤ -20 || best_step ≥ 100) # Drop if either a sudden drop OR a sudden spike is present
+
+        return (TreeId=subdf.TreeId[1], keep=keep)
+end
+valid_leaflet_trees = filter(:keep => x -> x, leaflet_trend_stats).TreeId
+filter_leaflet = filter(:TreeId => x -> x in valid_leaflet_trees, clean_avg_length)
+filter_leaflet = select(filter_leaflet, [:Site, :IdGenotype, :TreeId, :ObservationDate, :MAP, :avg_leaflet_length])
+rename!(filter_leaflet, :ObservationDate => :Date)
+CSV.write("2-results/calibration/avg_leaflet_length_mes.csv", filter_leaflet)
+avg_leaflet_length = data(filter_leaflet) *
                      mapping(:MAP, :avg_leaflet_length, color=:TreeId, col=:IdGenotype, row=:Site) *
                      visual(Lines)
 fig_avg_leaflet_length_tree = draw(avg_leaflet_length; axis=(; xlabel="Month after planting", ylabel="Leaflet length (cm)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/avg_leaflet_length_tree.png", fig_avg_leaflet_length_tree)
 
-#leaflet width #! filter the tree that has the leaflet that just started >80 MAP (SMSE)
+#leaflet width #! filter the tree that has the leaflet that just started >80 MAP (SMSE) continue 180725
 comb_leaflet.avg_leaflet_width = mean.(eachrow(select(comb_leaflet, [:AverageLeafletSampleWidthBase, :AverageLeafletSampleWidthMidd, :AverageLeafletSampleWidthTop])))
 clean_avg_width = dropmissing(comb_leaflet, :avg_leaflet_width)
 avg_leaflet_width = data(clean_avg_width) *
@@ -303,24 +334,14 @@ position_girth_towe = data(filter(row -> row.Site == "TOWE", clean_stack_girth))
 fig_girth_towe = draw(position_girth_towe; axis=(; xlabel="Month after planting", ylabel="Stem girth (m) TOWE"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/girth_towe_tree.png", fig_girth_towe)
 
-#avg girth 
-stem_girth.avg_girth = mean.(eachrow(select(stem_girth, [:Bottom_Girth, :OneAndHalfMeter_Girth, :TwoMeter_Girth])))
-clean_stem_girth = dropmissing(stem_girth, :avg_girth) #! filter also the value that 0
-avg_girth = data(clean_stem_girth) *
-            mapping(:MAP, :avg_girth, color=:TreeId, col=:IdGenotype, row=:Site) *
-            visual(Lines)
-fig_avg_girth = draw(avg_girth; axis=(; xlabel="Month after planting", ylabel="Average stem girth (m)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/sensitivity/CIGE/avg_girth_tree.png", fig_avg_girth)
-
-
 "phenology"
 filter_phenology = filter(row -> row.IdGenotype in genotype, df_phenology)
-group_pheno_phytomer = groupby(filter_phenology, [:TreeId, :PhytomerNumber, :RankOneLeafMAP, :Site]) #!add tree id too
+group_pheno_phytomer = groupby(filter_phenology, [:TreeId, :PhytomerNumber, :RankOneLeafDate, :Site]) #!add tree id too
 group_pheno_treeId = groupby(filter_phenology, [:TreeId, :RankOneLeafMAP, :Site])
-group_pheno_IdGenotype = groupby(filter_phenology, [:IdGenotype, :RankOneLeafMAP, :Site])
+group_pheno_IdGenotype = groupby(filter_phenology, [:TreeId, :IdGenotype, :RankOneLeafMAP, :Site])
 
 #cumulative number of newleaf emitted per tree
-n_count_tree = combine(group_pheno_treeId, :RankOneLeafMAP => (x -> count(!ismissing, x)) => :n_leaf_emitted, :IdGenotype => unique => :IdGenotype)
+n_count_tree = combine(group_pheno_treeId, :RankOneLeafMAP => (x -> count(!ismissing, x)) => :n_leaf_emitted, :IdGenotype => first => :IdGenotype, :RankOneLeafDate => unique => :Date)
 clean_n_leaf = dropmissing(n_count_tree, :RankOneLeafMAP)
 cum_n_leaf = transform(groupby(clean_n_leaf, [:TreeId]), :n_leaf_emitted => (x -> cumsum(skipmissing(x))) => :Cumulated_n_leaf_emitted)
 # remove the late tree 
@@ -334,80 +355,66 @@ first_n_leaf_map = combine(groupby(cum_n_leaf, :TreeId)) do subdf
 end
 valid_trees_n_leaf = filter(:start_month => x -> x ≤ 50, first_n_leaf_map).TreeId
 cum_n_leaf_cleaned = filter(:TreeId => x -> x in valid_trees_n_leaf, cum_n_leaf)
-
+rename!(cum_n_leaf_cleaned, :RankOneLeafMAP => :MAP)
+CSV.write("2-results/calibration/cum_n_new_leaf_emitted.csv", cum_n_leaf_cleaned)
 cum_n_leaf_tree = data(cum_n_leaf_cleaned) *
-                  mapping(:RankOneLeafMAP, :Cumulated_n_leaf_emitted, color=:TreeId, col=:IdGenotype, row=:Site) *
+                  mapping(:MAP, :Cumulated_n_leaf_emitted, color=:TreeId, col=:IdGenotype, row=:Site) *
                   visual(Lines)
 fig_cum_n_leaf_tree = draw(cum_n_leaf_tree; axis=(; xlabel="Month after planting", ylabel="Total leaf emitted"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3)) #GE03 and GE16 in presco and TOwE is not take into account of number of fruit 
 save("2-results/sensitivity/CIGE/cum_n_leaf_emitted_tree.png", fig_cum_n_leaf_tree)
 
 #average number of new leaf emitted per progeny #! filter the tree thay has the value is returned  as 0, dont know how to do
-n_count_genotype = combine(group_pheno_IdGenotype, :RankOneLeafMAP => (x -> count(!ismissing, x)) => :n_leaf_emitted_genotype)
+n_count_genotype = combine(group_pheno_IdGenotype, :RankOneLeafMAP => (x -> count(!ismissing, x)) => :n_leaf_emitted_genotype, :RankOneLeafDate => unique => :Date)
 clean_n_leaf_genotype = dropmissing(n_count_genotype, :RankOneLeafMAP)
-avg_n_leaf_emitted = transform(groupby(clean_n_leaf_genotype, [:IdGenotype]), :n_leaf_emitted_genotype => mean => :avg_n_leaf_emitted_genotype)
-
-# # remove the late tree 
-# first_avg_n_leaf_map = combine(groupby(avg_n_leaf_emitted, :IdGenotype)) do subdf
-#         valid_rows = filter(:avg_n_leaf_emitted_genotype => x -> x > 0, subdf)
-#         if nrow(valid_rows) == 0
-#                 return (IdGenotype=subdf.IdGenotype[1], start_month=Inf)
-#         else
-#                 return (IdGenotype=subdf.IdGenotype[1], start_month=minimum(valid_rows.RankOneLeafMAP))
-#         end
-# end
-# valid_avg_n_leaf = filter(:start_month => x -> x ≤ 50, first_avg_n_leaf_map).IdGenotype
-# cum_avg_n_leaf_cleaned = filter(:IdGenotype => x -> x in valid_avg_n_leaf, avg_n_leaf_emitted)
-
-avg_n_leaf = data(cum_avg_n_leaf_cleaned) *
-             mapping(:RankOneLeafMAP, :avg_n_leaf_emitted_genotype, color=:IdGenotype, row=:Site) *
+avg_n_leaf_emitted = combine(groupby(clean_n_leaf_genotype, [:TreeId, :IdGenotype, :RankOneLeafMAP, :Site]), :n_leaf_emitted_genotype => mean => :avg_n_leaf_emitted_genotype, :Date => unique => :Date,
+        :RankOneLeafMAP => first => :MAP)
+CSV.write("2-results/calibration/avg_n_leaf_emitted_progeny.csv", avg_n_leaf_emitted)
+avg_n_leaf = data(avg_n_leaf_emitted) *
+             mapping(:RankOneLeafMAP, :avg_n_leaf_emitted_genotype, color=:IdGenotype, row=:Site, group=:TreeId) *
              visual(Lines)
 fig_avg_n_leaf = draw(avg_n_leaf; axis=(; xlabel="Month after planting", ylabel="Average number of leaf emitted (tree-1.month-1)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/avg_n_leaf_emitted_progeny.png", fig_avg_n_leaf)
 
-#time between leaf emission and flowering per phytomer, per year, per site #! remove the phytpmer number value if its return to 0 after 100 MAP
-comb_phytomer_flowering = transform(group_pheno_phytomer, [:FloweringMAP, :RankOneLeafMAP] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :month_flowering)
-clean_phytomer_flowering = dropmissing(comb_phytomer_flowering, :month_flowering)
+#time between leaf emission and flowering per phytomer, per year, per site 
+comb_phytomer_flowering = combine(group_pheno_phytomer, [:FloweringDate, :RankOneLeafDate] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :day_flowering_phytomer,
+        :FloweringMAP => unique => :MAP,
+        :IdGenotype => unique => :IdGenotype,
+        :PhytomerNumber => unique => :PhytomerNumber,
+        :FloweringDate => unique => :Date)
+clean_phytomer_flowering = dropmissing(comb_phytomer_flowering, :day_flowering_phytomer)
+sort(clean_phytomer_flowering, [:Site, :TreeId, :MAP])
+CSV.write("2-results/calibration/time_leaf_flowering_phytomer.csv", clean_phytomer_flowering)
 phytomer_flowering = data(clean_phytomer_flowering) *
-                     mapping(:FloweringMAP, :month_flowering, color=:PhytomerNumber, row=:Site) * #upper boundary
+                     mapping(:Date, :day_flowering_phytomer, color=:PhytomerNumber, row=:Site, group=:TreeId) * #upper boundary
                      visual(Lines)
-fig_phytomer_flowering = draw(phytomer_flowering; axis=(; xlabel="Month after planting", ylabel="Flowering time per phytomer (month)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+fig_phytomer_flowering = draw(phytomer_flowering; axis=(; xlabel="Flowering Date", ylabel="Time between leaf emission and flowering (day)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/flowering_phytomer.png", fig_phytomer_flowering)
 
-#time between leaf emission and flowering per Tree, per year, per site
-comb_treeId_flowering = transform(group_pheno_treeId, [:FloweringMAP, :RankOneLeafMAP] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :month_flowering)
-clean_treeId_flowering = dropmissing(comb_treeId_flowering, :month_flowering)
-treeId_flowering = data(clean_treeId_flowering) *
-                   mapping(:FloweringMAP, :month_flowering, color=:TreeId, row=:Site) * #upper boundary
-                   visual(Lines)
-fig_treeId_flowering = draw(treeId_flowering; axis=(; xlabel="Month after planting", ylabel="Flowering time per tree (month)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/sensitivity/CIGE/flowering_tree.png", fig_treeId_flowering)
-
 #time between leaf emission and flowering per progeny, per year, per site
-comb_IdGenotype_flowering = transform(group_pheno_IdGenotype, [:FloweringMAP, :RankOneLeafMAP] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :month_flowering)
-clean_IdGenotype_flowering = dropmissing(comb_treeId_flowering, :month_flowering)
+comb_IdGenotype_flowering = transform(group_pheno_IdGenotype, [:FloweringDate, :RankOneLeafDate] => ((f, r) -> ifelse.(ismissing.(f) .| ismissing.(r), missing, f .- r)) => :days_flowering_IdGenotype,)
+clean_IdGenotype_flowering = select(clean_IdGenotype_flowering, [:TreeId, :days_flowering_IdGenotype, :FloweringDate, :IdGenotype, :Site, :FloweringMAP])
+clean_IdGenotype_flowering = dropmissing(comb_IdGenotype_flowering, :days_flowering_IdGenotype)
+rename!(clean_IdGenotype_flowering, [:FloweringDate => :Date, :FloweringMAP => :MAP])
+CSV.write("2-results/calibration/time_leaf_flowering_IdGenotype.csv", clean_IdGenotype_flowering)
 IdGenotype_flowering = data(clean_IdGenotype_flowering) *
-                       mapping(:FloweringMAP, axis=(; xlabel="Month after planting", ylabel="Flowering time per progeny (month)"), :month_flowering, color=:IdGenotype, row=:Site) * #upper boundary
+                       mapping(:Date, :days_flowering_IdGenotype, color=:IdGenotype, row=:Site, group=:TreeId) * #upper boundary
                        visual(Lines)
-fig_IdGenotype_flowering = draw(IdGenotype_flowering; figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+fig_IdGenotype_flowering = draw(IdGenotype_flowering; axis=(; xlabel="Flowering Date", ylabel="Time between leaf emission and flowering (day)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/flowering_genotype.png", fig_IdGenotype_flowering)
 
 #time between flowering and Harvest per phytomer, per year, per site
-comb_phytomer_harvest = transform(group_pheno_phytomer, [:HarvestMAP, :FloweringMAP] => ((h, f) -> ifelse.(ismissing.(h) .| ismissing.(f), missing, h .- f)) => :month_harvest)
-clean_phytomer_harvest = dropmissing(comb_phytomer_harvest, :month_harvest)
+comb_phytomer_harvest = combine(group_pheno_phytomer, [:HarvestDate, :FloweringDate] => ((h, f) -> ifelse.(ismissing.(h) .| ismissing.(f), missing, h .- f)) => :days_harvest_phytomer,
+        :FloweringMAP => unique => :MAP,
+        :IdGenotype => unique => :IdGenotype,
+        :PhytomerNumber => unique => :PhytomerNumber,
+        :FloweringDate => unique => :Date)
+clean_phytomer_harvest = dropmissing(comb_phytomer_harvest, :days_harvest_phytomer)
+CSV.write("2-results/calibration/time_flowering_harvest_phytomer.csv", clean_phytomer_harvest)
 phytomer_harvest = data(clean_phytomer_harvest) *
-                   mapping(:month_harvest, :HarvestMAP, color=:PhytomerNumber, row=:Site) * #upper boundary
+                   mapping(:Date, :days_harvest_phytomer, color=:PhytomerNumber, row=:Site, group=:TreeId) * #upper boundary
                    visual(Lines)
 fig_phytomer_harvest = draw(phytomer_harvest; axis=(; xlabel="Month after planting", ylabel="Harvest time per phytomer (month)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/sensitivity/CIGE/harvest_phytomer.png", fig_phytomer_harvest)
-
-#time between flowering and Harvest per treeId, per year, per site
-comb_treeId_harvest = transform(group_pheno_treeId, [:HarvestMAP, :FloweringMAP] => ((h, f) -> ifelse.(ismissing.(h) .| ismissing.(f), missing, h .- f)) => :month_harvest)
-clean_treeId_harvest = dropmissing(comb_treeId_harvest, :month_harvest)
-treeId_harvest = data(clean_treeId_harvest) *
-                 mapping(:month_harvest, :HarvestMAP, color=:TreeId, row=:Site) * #upper boundary
-                 visual(Lines)
-fig_treeId_harvest = draw(treeId_harvest; axis=(; xlabel="Month after planting", ylabel="Harvest time per tree (month)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/sensitivity/CIGE/harvest_tree.png", fig_treeId_harvest)
 
 #time between flowering and Harvest per IdGenotype, per year, per site
 comb_IdGenotype_harvest = transform(group_pheno_IdGenotype, [:HarvestMAP, :FloweringMAP] => ((h, f) -> ifelse.(ismissing.(h) .| ismissing.(f), missing, h .- f)) => :month_harvest)
