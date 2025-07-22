@@ -4,37 +4,23 @@ using CSV, DataFrames, Dates, CairoMakie
 using GLM, StatsBase, Statistics
 using AlgebraOfGraphics
 
-#bunch component
+# Tree scale
 mes_cum_prod = CSV.read("2-results/calibration/cumulated_production_mes.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_cum_n_bunch = CSV.read("2-results/calibration/cumulated_n_bunch_mes.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_cum_n_fruit = CSV.read("2-results/calibration/cumulated_n_fruit_mes.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_cum_stalk_biomass = CSV.read("2-results/calibration/cumulated_stalk_biomass_mes.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_cum_biomass_oil = CSV.read("2-results/calibration/cumulated_biomass_oil_mes.csv", DataFrame, missingstring=["NA", "NaN"])
 mes_LAI = CSV.read("2-results/calibration/LAI_mes.csv", DataFrame, missingstring=["NA", "NaN"])
 mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/cum_n_new_leaf_emitted.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_leaf_phytomer = CSV.read("2-results/calibration/time_leaf_phytomer.csv", DataFrame, missingstring=["NA", "NaN"])
 mes_leaf_MAP = CSV.read("2-results/calibration/time_leaf_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_flowering_phytomer = CSV.read("2-results/calibration/time_leaf_flowering_phytomer.csv", DataFrame, missingstring=["NA", "NaN"])
 mes_flowering_MAP = CSV.read("2-results/calibration/time_leaf_flowering_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_harvest_phytomer = CSV.read("2-results/calibration/time_flowering__harvest_phytomer.csv", DataFrame, missingstring=["NA", "NaN"])
 mes_harvest_MAP = CSV.read("2-results/calibration/time_flowering_harvest_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-
 
 merged_CIGE = outerjoin(
     mes_cum_prod,
-    mes_cum_n_bunch,
-    mes_cum_n_fruit,
-    mes_cum_stalk_biomass,
-    mes_cum_biomass_oil,
     mes_LAI,
     mes_cum_n_new_leaf_emitted,
-    mes_leaf_phytomer,
     mes_leaf_MAP,
-    mes_flowering_phytomer,
     mes_flowering_MAP,
-    mes_harvest_phytomer,
     mes_harvest_MAP,
-    on=[:TreeId, :Date, :MAP, :Site, :IdGenotype], makeunique=true)
+    on=[:TreeId, :Date, :MAP, :Site, :IdGenotype],
+    makeunique=true
+)
 sort!(merged_CIGE, [:TreeId, :Site, :Date])
-
-
+select!(merged_CIGE, :Site, :IdGenotype, :TreeId, :Date, :MAP, :PhytomerNumber, :)
