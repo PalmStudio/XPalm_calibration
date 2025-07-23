@@ -5,13 +5,13 @@ using GLM, StatsBase, Statistics
 using AlgebraOfGraphics, CairoMakie
 
 # Tree scale
-mes_cum_prod = CSV.read("2-results/calibration/cumulated_production_mes.csv", DataFrame, missingstring="")
-mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/cum_n_new_leaf_emitted.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_leaf_MAP = CSV.read("2-results/calibration/time_leaf_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_flowering_MAP = CSV.read("2-results/calibration/time_leaf_flowering_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_harvest_MAP = CSV.read("2-results/calibration/time_flowering_harvest_MAP.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_leaf = CSV.read("2-results/calibration/data_leaf_rank_17.csv", DataFrame, missingstring=["NA", "NaN"])
-mes_stem = CSV.read("2-results/calibration/data_stem.csv", DataFrame, missingstring=["NA", "NaN"])
+mes_cum_prod = CSV.read("2-results/calibration/cumulated_production_mes.csv", DataFrame)
+mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/cum_n_new_leaf_emitted.csv", DataFrame)
+mes_leaf_MAP = CSV.read("2-results/calibration/time_leaf_MAP.csv", DataFrame)
+mes_flowering_MAP = CSV.read("2-results/calibration/time_leaf_flowering_MAP.csv", DataFrame)
+mes_harvest_MAP = CSV.read("2-results/calibration/time_flowering_harvest_MAP.csv", DataFrame)
+mes_leaf = CSV.read("2-results/calibration/data_leaf_rank_17.csv", DataFrame)
+mes_stem = CSV.read("2-results/calibration/data_stem.csv", DataFrame)
 
 
 merged_CIGE = outerjoin(
