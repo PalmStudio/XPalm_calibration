@@ -134,6 +134,7 @@ CSV.write("2-results/calibration/cumulated_production_mes.csv", df_production_MA
 df_filter_leaf = filter(row -> row.IdGenotype in genotype && row.TreeId in trees_selected.TreeId, df_leaf_growth)
 #! We have any other variables in this dataframe, such as rachis length and biomass, leaflet length, leaflet width, etc.
 rename!(df_filter_leaf, :ObservationDate => :Date)
+select!(df_filter_leaf, Not(:Plot, :BlockNumber, :LineNumber, :TreeNumber, :LAI))
 CSV.write("2-results/calibration/data_leaf_rank_17.csv", df_filter_leaf)
 # using AlgebraOfGraphics
 # p = data(df_filter_leaf) *
@@ -142,51 +143,12 @@ CSV.write("2-results/calibration/data_leaf_rank_17.csv", df_filter_leaf)
 # draw(p, legend=(show=false,), figure=(size=(1000, 600),), axis=(xlabel="Month after planting", ylabel="Leaf Area at Rank 17 (m²)"))
 
 
-# "stem growth"
-# filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
-# group_stem_treeId = groupby(filter_stem, [:TreeId, :MAP, :Site])
-
-# #stem height
-# comb_sheight = combine(group_stem_treeId, :Height => (x -> sum(skipmissing(x))) => :stem_height_MAP, :IdGenotype => unique => :IdGenotype)
-# clean_sheight = dropmissing(comb_sheight, :stem_height_MAP)
-# sheight_tree = data(clean_sheight) *
-#                mapping(:MAP, :stem_height_MAP, color=:TreeId, col=:IdGenotype, row=:Site) *
-#                visual(Lines)
-# fig_sheight_tree = draw(sheight_tree; axis=(; xlabel="Month after planting", ylabel="Stem height (m)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-# save("2-results/sensitivity/CIGE/stem_height_tree.png", fig_sheight_tree)
-
-# #stem girth 
-# stem_girth = combine(group_stem_treeId, :BottomPeriphery => (x -> sum(skipmissing(x))) => :Bottom_Girth,
-#         :OneAndHalfMeterPeriphery => (x -> sum(skipmissing(x))) => :OneAndHalfMeter_Girth,
-#         :TwoMeterPeriphery => (x -> sum(skipmissing(x))) => :TwoMeter_Girth, :IdGenotype => unique => :IdGenotype)
-
-# stack_girth = stack(stem_girth, [:Bottom_Girth, :OneAndHalfMeter_Girth, :TwoMeter_Girth],
-#         variable_name=:Position,
-#         value_name=:Girth)
-# stack_girth.Position = replace.(string.(stack_girth.Position), "_Girth" => "")
-
-# clean_stack_girth = dropmissing(stack_girth, :Girth)
-
-# #girth smse 
-# position_girth_smse = data(filter(row -> row.Site == "SMSE", clean_stack_girth)) *
-#                       mapping(:MAP, :Girth, color=:TreeId, row=:Position, col=:IdGenotype) *
-#                       visual(Lines)
-# fig_girth_smse = draw(position_girth_smse; axis=(; xlabel="Month after planting", ylabel="Stem girth (m) SMSE"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-# save("2-results/sensitivity/CIGE/girth_smse_tree.png", fig_girth_smse)
-
-# #girth presco 
-# position_girth_presco = data(filter(row -> row.Site == "PR", clean_stack_girth)) *
-#                         mapping(:MAP, :Girth, color=:TreeId, row=:Position, col=:IdGenotype) *
-#                         visual(Lines)
-# fig_girth_presco = draw(position_girth_presco; axis=(; xlabel="Month after planting", ylabel="Stem girth (m) PRESCO"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-# save("2-results/sensitivity/CIGE/girth_presco_tree.png", fig_girth_presco)
-
-# #girth towe 
-# position_girth_towe = data(filter(row -> row.Site == "TOWE", clean_stack_girth)) *
-#                       mapping(:MAP, :Girth, color=:TreeId, row=:Position, col=:IdGenotype) *
-#                       visual(Lines)
-# fig_girth_towe = draw(position_girth_towe; axis=(; xlabel="Month after planting", ylabel="Stem girth (m) TOWE"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-# save("2-results/sensitivity/CIGE/girth_towe_tree.png", fig_girth_towe)
+"stem growth"
+filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
+rename!(filter_stem, :ObservationDate => :Date)
+select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber))
+dropmissing!(filter_stem, :Height) #dropmissing based on the height
+CSV.write("2-results/calibration/data_stem.csv", filter_stem)
 
 "phenology"
 df_filter_phenology = filter(row -> row.IdGenotype in genotype && row.TreeId in trees_selected.TreeId, df_phenology)
