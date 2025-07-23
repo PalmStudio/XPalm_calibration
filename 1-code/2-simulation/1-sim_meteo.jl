@@ -53,7 +53,7 @@ begin
         site = m[1].site
         palm = XPalm.Palm(parameters=params[site])
         df = xpalm(m, DataFrame, vars=out_vars, palm=palm)
-        df = df["Soil"]
+        df = outerjoin(df["Scene"], df["Plant"], df["Soil"], df["Leaf"], df["Phytomer"], df["Female"], df["Male"], df["Internode"], on=[:timestep, :node], makeunique=true)
 
         # Add site name
         df[!, "Site"] .= site
@@ -80,9 +80,11 @@ end
 
 dfs_all = vcat(simulations...)
 
-mkpath("2-results/simulations")
-CSV.write("2-results/simulations/sim_comparison_soil.csv", dfs_all)
+mkpath("2-results/calibration")
+CSV.write("2-results/calibration/simulation_climate_nursery.csv", dfs_all)
 
+#plot simulation
+df_simulation = CSV.read("2-results/calibration/simulation_climate_nursery.csv", DataFrame)
 #plot the comparison of number of ftsw < 0.3 within the sites in bar plot
 df_ftsw = CSV.read("2-results/simulations/sim_comparison_soil.csv", missingstring=["NA", "NaN"], DataFrame)
 data(df_ftsw) * mapping(:MAP, :ftsw, color=:Site) * visual(Lines) |> draw
