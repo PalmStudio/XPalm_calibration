@@ -132,14 +132,14 @@ df_to_remove.MesocarpsSampleWC .= missing
 #     visual(Lines)
 # draw(p, legend=(show=false,), figure=(size=(1000, 600),), axis=(xlabel="Month after planting", ylabel="Bunch mass (kg)"))
 sort!(df_production_MAP_filtered, [:Site, :MAP])
-CSV.write("2-results/calibration/cumulated_production_mes.csv", df_production_MAP_filtered)
+CSV.write("2-results/calibration/CIGE/temporary_data/cumulated_production_mes.csv", df_production_MAP_filtered)
 
 "Morphology"
 df_filter_leaf = filter(row -> row.IdGenotype in genotype && row.TreeId in trees_selected.TreeId, df_leaf_growth)
 #! We have any other variables in this dataframe, such as rachis length and biomass, leaflet length, leaflet width, etc.
 rename!(df_filter_leaf, :ObservationDate => :Date)
 select!(df_filter_leaf, Not(:Plot, :BlockNumber, :LineNumber, :TreeNumber, :LAI))
-CSV.write("2-results/calibration/data_leaf_rank_17.csv", df_filter_leaf)
+CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 # using AlgebraOfGraphics
 # p = data(df_filter_leaf) *
 #     mapping(:MAP, :LeafArea, color=:TreeId, col=:IdGenotype, row=:Site) *
@@ -151,7 +151,7 @@ filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
 rename!(filter_stem, :ObservationDate => :Date)
 select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber))
 dropmissing!(filter_stem, :Height) #dropmissing based on the height
-CSV.write("2-results/calibration/data_stem.csv", filter_stem)
+CSV.write("2-results/calibration/CIGE/temporary_data/data_stem.csv", filter_stem)
 
 "phenology"
 df_filter_phenology = filter(row -> row.IdGenotype in genotype && row.TreeId in trees_selected.TreeId, df_phenology)
@@ -164,7 +164,7 @@ n_count_tree = combine(groupby(df_filter_phenology, [:TreeId, :RankOneLeafMAP, :
 clean_n_leaf = dropmissing(n_count_tree, :RankOneLeafMAP)
 cum_n_leaf = transform(groupby(clean_n_leaf, [:TreeId]), :n_leaf_emitted => (x -> cumsum(skipmissing(x))) => :Cumulated_n_leaf_emitted)
 rename!(cum_n_leaf, :RankOneLeafMAP => :MAP)
-CSV.write("2-results/calibration/cum_n_new_leaf_emitted.csv", cum_n_leaf)
+CSV.write("2-results/calibration/CIGE/temporary_data/cum_n_new_leaf_emitted.csv", cum_n_leaf)
 
 #average time to leaf emitted per tree per phytomer number and per MAP
 #! there is an issue for phytomer number 2 for TreeId SMSE_B22_2_GE12_57_3, we have two measurements, we keep the second one (most probably the correct one)
@@ -190,7 +190,7 @@ select!(days_between_leaf, :Site, :IdGenotype, :TreeId, :Date, :MAP, :PhytomerNu
 #     mapping(:MAP, :days_leaf_phytomer, color=:TreeId, col=:IdGenotype, row=:Site) *
 #     visual(Lines)
 # draw(p, legend=(show=false,), figure=(size=(1000, 600),), axis=(xlabel="Month after planting", ylabel="Days between leaf emission and next leaf (days)"))
-# CSV.write("2-results/calibration/time_leaf_phytomer.csv", days_between_leaf)
+# CSV.write("2-results/calibration/CIGE/temporary_data/time_leaf_phytomer.csv", days_between_leaf)
 
 # Average by MAP
 mean_leaf_MAP = combine(
@@ -200,32 +200,60 @@ mean_leaf_MAP = combine(
         :number_days_last_phytomer => mean => :phyllochron_days_per_MAP,
 )
 
-CSV.write("2-results/calibration/time_leaf_MAP.csv", mean_leaf_MAP)
+CSV.write("2-results/calibration/CIGE/temporary_data/time_leaf_MAP.csv", mean_leaf_MAP)
 
 #average time between leaf emission and flowering per tree per phytomer and per MAP
 comb_phytomer_flowering = transform(df_filter_phenology, [:FloweringDate, :RankOneLeafDate] => ((f, r) -> ifelse(ismissing(f) | ismissing(r), missing, f - r)) => :day_flowering_phytomer)
 dropmissing!(comb_phytomer_flowering, :day_flowering_phytomer)
 comb_phytomer_flowering.day_flowering_phytomer = coalesce.(Dates.value.(comb_phytomer_flowering.day_flowering_phytomer), missing)
 select!(comb_phytomer_flowering, :Site, :IdGenotype, :TreeId, :PhytomerNumber, :day_flowering_phytomer, :FloweringDate => :Date, :FloweringMAP => :MAP)
-# CSV.write("2-results/calibration/time_leaf_flowering_phytomer.csv", comb_phytomer_flowering)
+# CSV.write("2-results/calibration/CIGE/temporary_data/time_leaf_flowering_phytomer.csv", comb_phytomer_flowering)
 mean_flowering_MAP = combine(
         groupby(comb_phytomer_flowering, [:TreeId, :MAP, :Site]),
         :IdGenotype => first => :IdGenotype,
         :Date => last => :Date,
         :day_flowering_phytomer => (x -> round(Int, mean(x))) => :day_flowering_MAP,
 )
-CSV.write("2-results/calibration/time_leaf_flowering_MAP.csv", mean_flowering_MAP)
+CSV.write("2-results/calibration/CIGE/temporary_data/time_leaf_flowering_MAP.csv", mean_flowering_MAP)
 
 #time between flowering and Harvest per tree per phytomer and per MAP
 comb_phytomer_harvest = transform(df_filter_phenology, [:HarvestDate, :FloweringDate] => ((h, f) -> ifelse.(ismissing.(h) .| ismissing.(f), missing, h .- f)) => :days_harvest_phytomer)
 dropmissing!(comb_phytomer_harvest, :days_harvest_phytomer)
 comb_phytomer_harvest.days_harvest_phytomer = coalesce.(Dates.value.(comb_phytomer_harvest.days_harvest_phytomer), missing)
 select!(comb_phytomer_harvest, :Site, :IdGenotype, :TreeId, :PhytomerNumber, :days_harvest_phytomer, :HarvestDate => :Date, :HarvestMAP => :MAP)
-# CSV.write("2-results/calibration/time_flowering__harvest_phytomer.csv", comb_phytomer_harvest)
+# CSV.write("2-results/calibration/CIGE/temporary_data/time_flowering__harvest_phytomer.csv", comb_phytomer_harvest)
 mean_harvest_MAP = combine(
         groupby(comb_phytomer_harvest, [:TreeId, :MAP, :Site]),
         :IdGenotype => first => :IdGenotype,
         :Date => last => :Date,
         :days_harvest_phytomer => (x -> round(Int, mean(x))) => :days_harvest_MAP
 )
-CSV.write("2-results/calibration/time_flowering_harvest_MAP.csv", mean_harvest_MAP)
+CSV.write("2-results/calibration/CIGE/temporary_data/time_flowering_harvest_MAP.csv", mean_harvest_MAP)
+
+
+
+# Making the CIGE calibration dataframe:
+# Tree scale
+mes_cum_prod = CSV.read("2-results/calibration/CIGE/temporary_data/cumulated_production_mes.csv", DataFrame)
+mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/CIGE/temporary_data/cum_n_new_leaf_emitted.csv", DataFrame)
+mes_leaf_MAP = CSV.read("2-results/calibration/CIGE/temporary_data/time_leaf_MAP.csv", DataFrame)
+mes_flowering_MAP = CSV.read("2-results/calibration/CIGE/temporary_data/time_leaf_flowering_MAP.csv", DataFrame)
+mes_harvest_MAP = CSV.read("2-results/calibration/CIGE/temporary_data/time_flowering_harvest_MAP.csv", DataFrame)
+mes_leaf = CSV.read("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", DataFrame)
+mes_stem = CSV.read("2-results/calibration/CIGE/temporary_data/data_stem.csv", DataFrame)
+
+transform_date_as_yearmonth!(df::DataFrame) = transform!(df, :Date => ByRow(x -> Dates.Date(Dates.yearmonth(x)..., 1)) => :Date)
+
+merged_CIGE = outerjoin(
+        transform_date_as_yearmonth!(mes_cum_prod),
+        transform_date_as_yearmonth!(mes_cum_n_new_leaf_emitted),
+        transform_date_as_yearmonth!(mes_leaf_MAP),
+        transform_date_as_yearmonth!(mes_flowering_MAP),
+        transform_date_as_yearmonth!(mes_harvest_MAP),
+        transform_date_as_yearmonth!(mes_leaf),
+        transform_date_as_yearmonth!(mes_stem),
+        on=[:TreeId, :Date, :MAP, :Site, :IdGenotype],
+        makeunique=true
+)
+sort!(merged_CIGE, [:TreeId, :Date, :MAP, :Site])
+CSV.write("2-results/calibration/CIGE/CIGE.csv", merged_CIGE)

@@ -4,32 +4,9 @@ using CSV, DataFrames, Dates, CairoMakie
 using GLM, StatsBase, Statistics
 using AlgebraOfGraphics, CairoMakie
 
-# Tree scale
-mes_cum_prod = CSV.read("2-results/calibration/cumulated_production_mes.csv", DataFrame)
-mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/cum_n_new_leaf_emitted.csv", DataFrame)
-mes_leaf_MAP = CSV.read("2-results/calibration/time_leaf_MAP.csv", DataFrame)
-mes_flowering_MAP = CSV.read("2-results/calibration/time_leaf_flowering_MAP.csv", DataFrame)
-mes_harvest_MAP = CSV.read("2-results/calibration/time_flowering_harvest_MAP.csv", DataFrame)
-mes_leaf = CSV.read("2-results/calibration/data_leaf_rank_17.csv", DataFrame)
-mes_stem = CSV.read("2-results/calibration/data_stem.csv", DataFrame)
 
-transform_date_as_yearmonth!(df::DataFrame) = transform!(df, :Date => ByRow(x -> Dates.Date(Dates.yearmonth(x)..., 1)) => :Date)
 
-merged_CIGE = outerjoin(
-    transform_date_as_yearmonth!(mes_cum_prod),
-    transform_date_as_yearmonth!(mes_cum_n_new_leaf_emitted),
-    transform_date_as_yearmonth!(mes_leaf_MAP),
-    transform_date_as_yearmonth!(mes_flowering_MAP),
-    transform_date_as_yearmonth!(mes_harvest_MAP),
-    transform_date_as_yearmonth!(mes_leaf),
-    transform_date_as_yearmonth!(mes_stem),
-    on=[:TreeId, :Date, :MAP, :Site, :IdGenotype],
-    makeunique=true
-)
-sort!(merged_CIGE, [:TreeId, :Date, :MAP, :Site])
-CSV.write("2-results/calibration/CIGE.csv", merged_CIGE)
-
-df_CIGE = CSV.read("2-results/calibration/CIGE.csv", DataFrame)
+df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
 
 #Plot BunchMass
 p_bunchMass = data(filter(row -> !ismissing(row.BunchMass), df_CIGE)) *
