@@ -13,15 +13,16 @@ mes_harvest_MAP = CSV.read("2-results/calibration/time_flowering_harvest_MAP.csv
 mes_leaf = CSV.read("2-results/calibration/data_leaf_rank_17.csv", DataFrame)
 mes_stem = CSV.read("2-results/calibration/data_stem.csv", DataFrame)
 
+transform_date_as_yearmonth!(df::DataFrame) = transform!(df, :Date => ByRow(x -> Dates.Date(Dates.yearmonth(x)..., 1)) => :Date)
 
 merged_CIGE = outerjoin(
-    mes_cum_prod,
-    mes_cum_n_new_leaf_emitted,
-    mes_leaf_MAP,
-    mes_flowering_MAP,
-    mes_harvest_MAP,
-    mes_leaf,
-    mes_stem,
+    transform_date_as_yearmonth!(mes_cum_prod),
+    transform_date_as_yearmonth!(mes_cum_n_new_leaf_emitted),
+    transform_date_as_yearmonth!(mes_leaf_MAP),
+    transform_date_as_yearmonth!(mes_flowering_MAP),
+    transform_date_as_yearmonth!(mes_harvest_MAP),
+    transform_date_as_yearmonth!(mes_leaf),
+    transform_date_as_yearmonth!(mes_stem),
     on=[:TreeId, :Date, :MAP, :Site, :IdGenotype],
     makeunique=true
 )
@@ -49,12 +50,12 @@ save("2-results/calibration/CIGE/DryMesocarpOilContent.png", fig_oilmesocarp)
 p_MesocarpsSampleWC = data(filter(row -> !ismissing(row.MesocarpsSampleWC), df_CIGE)) * #!theres huge increase in PR
                       mapping(:MAP, :MesocarpsSampleWC, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
                       visual(Lines)
-#cek3 = filter(row -> !ismissing(row.MesocarpsSampleWC) && row.Site == "PR" && row.MesocarpsSampleWC .> 0.8, df_CIGE)
+
 fig_MesocarpsSampleWC = draw(p_MesocarpsSampleWC; axis=(; xlabel="Month after planting", ylabel="Mesocarp water content (%)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/fig_MesocarpsSampleWC.png", fig_MesocarpsSampleWC)
 
 #plot number of fruit
-p_nFruit = data(filter(row -> !ismissing(row.n_of_fruit) && !(row.IdGenotype in ["GE03", "GE16"]), df_CIGE)) * #!GE03 and GE16 not available should be delete before
+p_nFruit = data(filter(row -> !ismissing(row.n_of_fruit), df_CIGE)) * #!GE03 and GE16 not available in PR and TOWE
            mapping(:MAP, :n_of_fruit, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
            visual(Lines)
 fig_n_fruit = draw(p_nFruit; axis=(; xlabel="Month after planting", ylabel="Number of fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
