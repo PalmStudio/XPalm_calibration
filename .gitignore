@@ -28,3 +28,4 @@ Manifest.toml
 2-results/sensitivity/loop/*.png
 
 **/*.csv
+**/*.png
