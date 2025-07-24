@@ -1,7 +1,6 @@
 "this code is use to make join all dataframes from observation and simulation in correspond date, site, tree id, progeny"
 
-using CSV, DataFrames, Dates, CairoMakie
-using GLM, StatsBase, Statistics
+using CSV, DataFrames, Dates
 using AlgebraOfGraphics, CairoMakie
 
 
