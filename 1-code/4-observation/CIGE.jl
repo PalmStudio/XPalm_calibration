@@ -122,6 +122,10 @@ df_production_MAP_filtered = filter(row -> row.TreeId in trees_selected.TreeId &
 filter(row -> ismissing(row.BunchMass), df_production_MAP_filtered)
 dropmissing!(df_production_MAP_filtered, :BunchMass)
 
+# Removing some weird measurements (3 values in PR):
+df_to_remove = filter(row -> !ismissing(row.MesocarpsSampleWC) && row.Site == "PR" && (row.MesocarpsSampleWC > 0.8 || row.MesocarpsSampleWC < 0.1), df_production_MAP_filtered, view=true)
+df_to_remove.MesocarpsSampleWC .= missing
+
 # using AlgebraOfGraphics
 # p = data(transform(groupby(df_production_MAP_filtered, :TreeId), :BunchMass => (x -> cumsum(skipmissing(x))) => :BunchMass_cum)) *
 #     mapping(:MAP, :BunchMass_cum, color=:TreeId, col=:IdGenotype, row=:Site) *
@@ -141,7 +145,6 @@ CSV.write("2-results/calibration/data_leaf_rank_17.csv", df_filter_leaf)
 #     mapping(:MAP, :LeafArea, color=:TreeId, col=:IdGenotype, row=:Site) *
 #     visual(Lines)
 # draw(p, legend=(show=false,), figure=(size=(1000, 600),), axis=(xlabel="Month after planting", ylabel="Leaf Area at Rank 17 (m²)"))
-
 
 "stem growth"
 filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
