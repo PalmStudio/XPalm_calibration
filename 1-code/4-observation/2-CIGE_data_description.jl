@@ -5,7 +5,6 @@ using GLM, StatsBase, Statistics
 using AlgebraOfGraphics, CairoMakie
 
 
-
 df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
 
 #Plot BunchMass
@@ -46,17 +45,16 @@ fig_biomass_fresh_fruit = draw(p_biomass_fresh_fruit; axis=(; xlabel="Month afte
 save("2-results/calibration/CIGE/biomass_fresh_fruit.png", fig_biomass_fresh_fruit)
 
 #plot biomass dry fruit
-p_biomass_dry_fruit = data(filter(row -> !ismissing(row.biomass_dry_fruit) && !(row.IdGenotype == "GE03"), df_CIGE)) * #!GE03 not available should be delete before
+p_biomass_dry_fruit = data(filter(row -> !ismissing(row.biomass_dry_fruit), df_CIGE)) * #!GE03 is not available for all sites
                       mapping(:MAP, :biomass_dry_fruit, color=:TreeId, col=:IdGenotype, row=:Site) *
                       visual(Lines)
-fig_biomass_dry_fruit = draw(p_biomass_dry_fruit; axis=(; xlabel="Month after planting", ylabel="Biomas dry fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+fig_biomass_dry_fruit = draw(p_biomass_dry_fruit; axis=(; xlabel="Month after planting", ylabel="Biomass dry fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/biomass_dry_fruit.png", fig_biomass_dry_fruit)
 
 #plot stalk dry biomass
-p_stalk_dry_biomass = data(filter(row -> !ismissing(row.stalk_dry_biomass) && !(row.IdGenotype == "GE03"), df_CIGE)) * #!GE03 not available should be delete before
+p_stalk_dry_biomass = data(filter(row -> !ismissing(row.stalk_dry_biomass), df_CIGE)) *#!GE03 is not available for all sites
                       mapping(:MAP, :stalk_dry_biomass, color=:TreeId, col=:IdGenotype, row=:Site) *
-                      visual(Lines) #! consider to delete the stalk here row.TreeId == "TOWE_POGP37_2_GE12_4_28" && row.MAP=89 && row.IdGenotype= GE12 && row.Date == "2019-11-05"
-#cek = filter(row -> row.TreeId == "TOWE_POGP37_2_GE12_4_28" && row.MAP == 89, df_CIGE)
+                      visual(Lines)
 fig_stalk_dry_biomass = draw(p_stalk_dry_biomass; axis=(; xlabel="Month after planting", ylabel="Stalk dry biomass"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/stalk_dry_biomass.png", fig_stalk_dry_biomass)
 
@@ -89,11 +87,10 @@ p_day_flowering_MAP = data(filter(row -> !ismissing(row.day_flowering_MAP), df_C
 fig_day_flowering_MAP = draw(p_day_flowering_MAP; axis=(; xlabel="Month after planting", ylabel="Time between leaf emitted and flowering"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/day_flowering.png", fig_day_flowering_MAP)
 
-#plot time between flowering and harvest MAP #! to check  TOWE_POGP37_1_GE16_19_9 the value is 45, sudden drop also sudden increse exist
+#plot time between flowering and harvest MAP
 p_days_harvest_MAP = data(filter(row -> !ismissing(row.days_harvest_MAP), df_CIGE)) *
                      mapping(:MAP, :days_harvest_MAP, color=:TreeId, col=:IdGenotype, row=:Site) *
                      visual(Lines)
-#cek2 = filter(row -> !ismissing(row.days_harvest_MAP) && row.days_harvest_MAP < 100 && row.IdGenotype == "GE16", df_CIGE)
 fig_days_harvest_MAP = draw(p_days_harvest_MAP; axis=(; xlabel="Month after planting", ylabel="Time between flowering and harvest"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/days_harvest.png", fig_days_harvest_MAP)
 
@@ -141,8 +138,6 @@ p_RachisWC = data(filter(row -> !ismissing(row.RachisWC), df_CIGE)) *
 #cek6 = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC < 0.4 || row.RachisWC > 0.8), df_CIGE)
 fig_RachisWC = draw(p_RachisWC; axis=(; xlabel="Month after planting", ylabel="Rachis Water Content"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/RachisFreshWeight.png", fig_RachisWC)
-
-
 
 #plot petiole length
 p_PetioleLength = data(filter(row -> !ismissing(row.PetioleLength), df_CIGE)) *

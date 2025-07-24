@@ -122,9 +122,18 @@ df_production_MAP_filtered = filter(row -> row.TreeId in trees_selected.TreeId &
 filter(row -> ismissing(row.BunchMass), df_production_MAP_filtered)
 dropmissing!(df_production_MAP_filtered, :BunchMass)
 
-# Removing some weird measurements (3 values in PR):
+# Removing some weird MesocarpsSampleWC measurements (3 values in PR):
 df_to_remove = filter(row -> !ismissing(row.MesocarpsSampleWC) && row.Site == "PR" && (row.MesocarpsSampleWC > 0.8 || row.MesocarpsSampleWC < 0.1), df_production_MAP_filtered, view=true)
 df_to_remove.MesocarpsSampleWC .= missing
+
+# Same for stalk_dry_biomass
+# df_to_remove = filter(row -> row.TreeId == "TOWE_POGP37_2_GE12_4_28" && row.MAP == 89, df_production_MAP_filtered, view=true) #? most probably a mistake in the point -> 15.5416 is probably 1.55416
+df_to_remove = filter(row -> !ismissing(row.stalk_dry_biomass) && row.stalk_dry_biomass > 5.0, df_production_MAP_filtered, view=true)
+df_to_remove.stalk_dry_biomass .= missing
+
+# Same for :stalk_fresh_biomass
+df_to_remove = filter(row -> !ismissing(row.stalk_fresh_biomass) && row.stalk_fresh_biomass > 15.0, df_production_MAP_filtered, view=true)
+df_to_remove.stalk_fresh_biomass .= missing
 
 # using AlgebraOfGraphics
 # p = data(transform(groupby(df_production_MAP_filtered, :TreeId), :BunchMass => (x -> cumsum(skipmissing(x))) => :BunchMass_cum)) *
@@ -139,6 +148,10 @@ df_filter_leaf = filter(row -> row.IdGenotype in genotype && row.TreeId in trees
 #! We have any other variables in this dataframe, such as rachis length and biomass, leaflet length, leaflet width, etc.
 rename!(df_filter_leaf, :ObservationDate => :Date)
 select!(df_filter_leaf, Not(:Plot, :BlockNumber, :LineNumber, :TreeNumber, :LAI))
+
+# Removing weird values: 
+df_to_remove = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC > 0.9 || row.RachisWC < 0.4), df_filter_leaf, view=true)
+df_to_remove.RachisWC .= missing
 CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 # using AlgebraOfGraphics
 # p = data(df_filter_leaf) *
@@ -228,6 +241,11 @@ mean_harvest_MAP = combine(
         :Date => last => :Date,
         :days_harvest_phytomer => (x -> round(Int, mean(x))) => :days_harvest_MAP
 )
+
+# Fix some weird values:
+df_to_remove = filter(row -> !ismissing(row.days_harvest_MAP) && (row.days_harvest_MAP < 100 || row.days_harvest_MAP > 250) && row.IdGenotype in ["GE16", "GE06", "GE03"], mean_harvest_MAP, view=true)
+df_to_remove.days_harvest_MAP .= missing
+
 CSV.write("2-results/calibration/CIGE/temporary_data/time_flowering_harvest_MAP.csv", mean_harvest_MAP)
 
 
