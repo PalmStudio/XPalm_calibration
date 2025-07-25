@@ -109,7 +109,7 @@ p_WholeLeafFreshWeight = data(filter(row -> !ismissing(row.WholeLeafFreshWeight)
 fig_WholeLeafFreshWeight = draw(p_WholeLeafFreshWeight; axis=(; xlabel="Month after planting", ylabel="Whole Leaf Fresh Weight"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/WholeLeafFreshWeight.png", fig_WholeLeafFreshWeight)
 
-#plot rachis length 
+#plot rachis length #!remove the PR GE16 <200
 p_RachisLength = data(filter(row -> !ismissing(row.RachisLength), df_CIGE)) *
                  mapping(:MAP, :RachisLength, color=:PhytomerNumber, col=:IdGenotype, row=:Site, group=:TreeId) *
                  visual(Lines)
@@ -123,7 +123,7 @@ p_RachisFreshWeight = data(filter(row -> !ismissing(row.RachisFreshWeight), df_C
 fig_RachisFreshWeight = draw(p_RachisFreshWeight; axis=(; xlabel="Month after planting", ylabel="Rachis Fresh Weight"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/RachisFreshWeight.png", fig_RachisFreshWeight)
 
-#plot rachis dry weight 
+#plot rachis dry weight #!remove the high value in SMSE GE09, PR GE16, and low value in TOWE GE16
 p_RachisDryWeight = data(filter(row -> !ismissing(row.RachisDryWeight), df_CIGE)) *
                     mapping(:MAP, :RachisDryWeight, color=:PhytomerNumber, col=:IdGenotype, row=:Site, group=:TreeId) *
                     visual(Lines)
@@ -131,10 +131,9 @@ fig_RachisDryWeight = draw(p_RachisDryWeight; axis=(; xlabel="Month after planti
 save("2-results/calibration/CIGE/RachisDryWeight.png", fig_RachisDryWeight)
 
 #plot rachis water content
-p_RachisWC = data(filter(row -> !ismissing(row.RachisWC), df_CIGE)) *
-             mapping(:MAP, :RachisWC, color=:PhytomerNumber, col=:IdGenotype, row=:Site, group=:TreeId) * #! theres too drop and fluctuated to be check
+p_RachisWC = data(filter(row -> !ismissing(row.RachisWC), df_CIGE)) * #!remove the row.RachisWC < 0.5 || row.RachisWC > 0.81
+             mapping(:MAP, :RachisWC, color=:PhytomerNumber, col=:IdGenotype, row=:Site, group=:TreeId) *
              visual(Lines)
-#cek6 = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC < 0.4 || row.RachisWC > 0.8), df_CIGE)
 fig_RachisWC = draw(p_RachisWC; axis=(; xlabel="Month after planting", ylabel="Rachis Water Content"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/RachisFreshWeight.png", fig_RachisWC)
 
@@ -167,7 +166,7 @@ fig_PetioleWC = draw(p_PetioleWC; axis=(; xlabel="Month after planting", ylabel=
 save("2-results/calibration/CIGE/PetioleWC.png", fig_PetioleWC)
 
 #plot number of leaflet 
-p_NumberOfLeaflets = data(filter(row -> !ismissing(row.NumberOfLeaflets), df_CIGE)) *
+p_NumberOfLeaflets = data(filter(row -> !ismissing(row.NumberOfLeaflets), df_CIGE)) * #!delete PR <200
                      mapping(:MAP, :NumberOfLeaflets, color=:PhytomerNumber, col=:IdGenotype, row=:Site, group=:TreeId) *
                      visual(Lines)
 fig_NumberOfLeaflets = draw(p_NumberOfLeaflets; axis=(; xlabel="Month after planting", ylabel="Number of leaflet"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
