@@ -6,7 +6,7 @@ using CairoMakie, AlgebraOfGraphics, Statistics
 using Dates
 
 meteo_smse = CSV.read("2-results/meteorology/meteo_smse_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Indonesia
-meteo_presco = CSV.read("2-results/meteorology/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Benin
+meteo_presco = CSV.read("2-results/meteorology/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Benin 
 meteo_towe = CSV.read("2-results/meteorology/meteo_towe_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Nigeria
 
 #1. Identify the nursery period
@@ -77,6 +77,8 @@ csv_sets = (
 output_dir = "2-results/meteorology/"
 
 for (name, df) in pairs(csv_sets)
+    #CSV.write(joinpath(output_dir, "meteo_$(name)_with_nursery_before_replace.csv"), df, delim=";")
+    #CSV.write(joinpath(output_dir, "meteo_$(name)_with_nursery_replace_climate.csv"), df, delim=";")
     CSV.write(joinpath(output_dir, "meteo_$(name)_with_nursery.csv"), df, delim=";")
 end
 
