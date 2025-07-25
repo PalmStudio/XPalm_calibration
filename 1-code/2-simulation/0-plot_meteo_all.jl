@@ -192,7 +192,17 @@ Legend(fig[end+1, 1:length(sites)],
 )
 
 fig
-save("2-results/meteorology/plot_climate_all.png", fig)
+save("2-results/meteorology/plot_climate_all.png", fig, px_per_unit=3)
+
+#make a boxplot for the climate variation
+plt_facet = data(climate_stacked_comb) *
+            mapping(:site, :value, color=:site, row=:variable) *
+            visual(BoxPlot)
+
+fig_facet = draw(plt_facet; axis=(ylabel="Value", xlabel="Site"))
+
+fig_facet
+save("2-results/meteorology/boxplot_climate_facet.png", fig_facet, px_per_unit=3)
 # save("2-results/meteorology/plot_climate_all_2.png", fig)
 # save("2-results/meteorology/plot_climate_all_3.png", fig) # change the first rainfall presco eror ith correspodnd month after
 # save("2-results/meteorology/plot_climate_all_4.png", fig) # change the first climate all presco eror ith correspodnd month after
@@ -292,8 +302,6 @@ save("2-results/meteorology/comparison_climate_daily_all.png", fig)
 df_meteo_long_comb.date = Date.(df_meteo_long_comb.date)
 df_meteo_long_comb.year = year.(df_meteo_long_comb.date)
 
-using DataFrames, CSV, Dates, StatsPlots, Statistics
-
 annual_meteo = combine(groupby(df_meteo_long_comb, [:site, :year]),
     :Precipitations => sum => :total_precip,
     :Rg => mean => :mean_Rg,
@@ -372,6 +380,6 @@ for ax_row in axes_per_var
 end
 
 fig2
-save("2-results/meteorology/comparison_climate_annual_all.png", fig2)
+save("2-results/meteorology/comparison_climate_annual_all.png", fig2, CairoMakie.px_per_unit=3)
 #save("2-results/meteorology/plot_climate_annual_all.png", fig)
 #save("2-results/meteorology/plot_climate_annual_all_before_fill_presco.png", fig)
