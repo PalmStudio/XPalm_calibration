@@ -152,18 +152,24 @@ select!(df_filter_leaf, Not(:Plot, :BlockNumber, :LineNumber, :TreeNumber, :LAI)
 # Removing weird values: 
 df_to_remove = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC > 0.9 || row.RachisWC < 0.4), df_filter_leaf, view=true)
 df_to_remove.RachisWC .= missing
-CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 
 #removing the rachis length 
 df_to_remove = filter(row -> !ismissing(row.RachisLength) && row.Site == "PR" && row.RachisLength < 200.0, df_filter_leaf, view=true)
 df_to_remove.RachisLength .= missing
-CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 
 #removing the rachis dry weight 
 df_to_remove = filter(row -> !ismissing(row.RachisDryWeight) && (row.RachisDryWeight > 2.6 || row.RachisDryWeight < 0.1), df_filter_leaf, view=true)
 df_to_remove.RachisDryWeight .= missing
-CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 
+#remove rachis wc
+df_to_remove = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC < 0.5 || row.RachisWC > 0.81), df_filter_leaf, view=true)
+df_to_remove.RachisWC .= missing
+
+#remove number of leaflet
+df_to_remove = filter(row -> !ismissing(row.NumberOfLeaflets) && row.NumberOfLeaflets < 200, df_filter_leaf, view=true)
+df_to_remove.NumberOfLeaflets .= missing
+
+CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
 # using AlgebraOfGraphics
 # p = data(df_filter_leaf) *
 #     mapping(:MAP, :LeafArea, color=:TreeId, col=:IdGenotype, row=:Site) *
