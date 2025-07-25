@@ -4,7 +4,7 @@ using CSV, DataFrames, Dates
 using GLM, StatsBase, Statistics
 
 # Data from CIGE
-df_bunch_component = CSV.read("0-data/BunchComponent_CIGE.csv", DataFrame, missingstring=["NA", "NaN"])
+df_bunch_component = CSV.read("0-data/BunchComponents_CIGE.csv", DataFrame, missingstring=["NA", "NaN"])
 df_leaf_growth = CSV.read("0-data/LeafGrowth_CIGE.csv", DataFrame, missingstring=["NA", "NaN"])
 df_phenology = CSV.read("0-data/Pheno_CIGE.csv", DataFrame, missingstring=["NA", "NaN"])
 df_stem_growth = CSV.read("0-data/StemGrowth_CIGE.csv", DataFrame, missingstring=["NA", "NaN"])
@@ -83,7 +83,7 @@ df_production = select(
         :Site, :IdGenotype => :IdGenotype, :TreeId, :HarvestDate => :Date, :MAP, :PhytomerNumber, :BunchMass, :DryMesocarpOilContent, :MesocarpsSampleWC,
         [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit,
         [:UnfertilFruitsFreshWeight, :FertilFruitsFreshWeight] => ByRow((uf, f) -> any(ismissing.([uf, f])) ? missing : uf + f) => :biomass_fresh_fruit,
-        [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :UnfertilFruitsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
+        [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :ThirtyNutsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
         #! check that the fruits biomass is total fruits biomass, and not per-fruit biomass (in this case, we have to x by fruit number)
         [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_dry_biomass,
         [:peduncleFreshWeight, :SpikeletsFreshWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_fresh_biomass
@@ -153,6 +153,17 @@ select!(df_filter_leaf, Not(:Plot, :BlockNumber, :LineNumber, :TreeNumber, :LAI)
 df_to_remove = filter(row -> !ismissing(row.RachisWC) && (row.RachisWC > 0.9 || row.RachisWC < 0.4), df_filter_leaf, view=true)
 df_to_remove.RachisWC .= missing
 CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
+
+#removing the rachis length 
+df_to_remove = filter(row -> !ismissing(row.RachisLength) && row.Site == "PR" && row.RachisLength < 200.0, df_filter_leaf, view=true)
+df_to_remove.RachisLength .= missing
+CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
+
+#removing the rachis dry weight 
+df_to_remove = filter(row -> !ismissing(row.RachisDryWeight) && (row.RachisDryWeight > 2.6 || row.RachisDryWeight < 0.1), df_filter_leaf, view=true)
+df_to_remove.RachisDryWeight .= missing
+CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_filter_leaf)
+
 # using AlgebraOfGraphics
 # p = data(df_filter_leaf) *
 #     mapping(:MAP, :LeafArea, color=:TreeId, col=:IdGenotype, row=:Site) *
@@ -162,7 +173,7 @@ CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_
 "stem growth"
 filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
 rename!(filter_stem, :ObservationDate => :Date)
-select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber))
+select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber, :Year, :PlantingDate))
 dropmissing!(filter_stem, :Height) #dropmissing based on the height
 CSV.write("2-results/calibration/CIGE/temporary_data/data_stem.csv", filter_stem)
 
