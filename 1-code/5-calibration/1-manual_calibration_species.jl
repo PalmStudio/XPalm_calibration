@@ -19,7 +19,10 @@ end
 
 df_CIGE_species = combine(
     groupby(df_CIGE, [:Site, :MAP]),
+    :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :Cumulated_n_leaf_emitted, #!good
+    :LeafArea => (x -> fn_no_missings(x, mean)) => :Leaf_area_17,
     :BunchMass => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_biomass, # in g,
+    :biomass_dry_fruit => (x -> fn_no_missings(x, mean) .* 1e3) => :biomass_dry_fruit
 )
 
 
@@ -62,7 +65,7 @@ begin
         "Plant" => (:leaf_area, :biomass_bunch_harvested, :phytomer_count, :production_speed, :n_bunches_harvested_cum, :n_bunches_harvested, :biomass_bunch_harvested_cum,
             :biomass_fruit_harvested),
         # "Soil" => (:ftsw, :qty_H2O_C_Roots, :transpiration),
-        "Leaf" => (:biomass,),
+        "Leaf" => (:leaf_area, :biomass, :rank),
         #"Phytomer" => (:TT_flowering,),
         "Female" => (:biomass_bunch_harvested, :biomass_fruit_harvested, :fruits_number, :biomass_stalk_harvested, :biomass_fruits),
         # "Male" => (:biomass,),
@@ -95,7 +98,7 @@ sort!(dfs_plant, [:Site, :timestep])
 
 dfs_plant_MAP = combine(
     groupby(dfs_plant, [:Site, :MAP]),
-    :leaf_area => sum => :Leaf_area, #total leaf area per month
+    :leaf_area => last => :Leaf_area, #total leaf area per month
     :biomass_bunch_harvested => sum => :biomass_bunch_harvested_MAP, #total biomass bunch harvested
     :biomass_bunch_harvested_cum => last => :biomass_bunch_harvested_cum, #dynamic cumulated bunch biomass per MAP
     :biomass_fruit_harvested => sum => :biomass_fruit_harvested_MAP, #gr (?)
@@ -157,20 +160,13 @@ fig_diff_phytomer_emmitted = draw(p_diff_phytomer_emmitted)
 save("2-results/simulations/plot_sim/diff_phytomer_emmitted.png", fig_diff_phytomer_emmitted)
 
 #!Plant
-#extract only needed variable (20072025)
-df_CIGE_plant = combine(
-    groupby(df_CIGE, [:Site, :TreeId, :MAP]),
-    :BunchMass => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_biomass, # in g
-    :Cumulated_n_leaf_emitted => :Cumulated_n_leaf_emitted
-)
-
-df_plant = innerjoin(dfs_plant_MAP, df_CIGE_plant, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
-
+df_plant = innerjoin(dfs_plant_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
+transform!(groupby(df_plant, [:Site]), :phytomer_count_sim => (x -> x .- first(x)) => :Cumulated_n_leaf_emitted_sim)
 #plot total number of leaf/ phytomer emitted
-df_leaf_emit_long = stack(df_plant, [:phytomer_count_sim, :Cumulated_n_leaf_emitted_obs], variable_name=:type, value_name=:leaf_emitted)
+df_leaf_emit_long = stack(df_plant, [:Cumulated_n_leaf_emitted_sim, :Cumulated_n_leaf_emitted_obs], variable_name=:type, value_name=:leaf_emitted)
 p_leaf_emittted = data(df_leaf_emit_long) * mapping(:MAP, :leaf_emitted, row=:Site, color=:type) * visual(Lines)
-fig_leaf_emitted = draw(p_leaf_emittted; axis=(; xlabel="Month after planting", ylabel="Leaf_emitted"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
-save("2-results/calibration/XPalm/leaf_emitted.png", fig_leaf_emitted)
+fig_leaf_emitted = draw(p_leaf_emittted; axis=(; xlabel="Month after planting", ylabel="Number of leaves emitted since first observation"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
+save("2-results/calibration/XPalm/1.leaf_emitted.png", fig_leaf_emitted) #!dont change its good
 
 #biomass dry fruit in the plant scale #!need to confirm
 CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
@@ -195,6 +191,23 @@ fig_fruit_dry = draw(p_fruit_dry; axis=(; xlabel="Month after planting", ylabel=
 save("2-results/calibration/XPalm/Biomass dry fruit.png", fig_fruit_dry=draw(p_fruit_dry; axis=(; xlabel="Month after planting", ylabel="Biomass dry fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
 )
 
+#!dfs leaf
+dfs_leaf = vcat([s["Leaf"] for s in simulations]...)
+sort!(dfs_leaf, [:Site, :timestep])
+filter!(x -> x.rank == 17, dfs_leaf)
+
+dfs_leaf_MAP = combine(groupby(dfs_leaf, [:Site, :MAP]),
+    :leaf_area => last => :Leaf_area_17)t
+
+df_leaf = innerjoin(dfs_leaf_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
+
+#plot leaf area
+df_leaf_area_17_long = stack(df_leaf, [:Leaf_area_17_sim, :Leaf_area_17_obs], variable_name=:type, value_name=:Leaf_area_17)
+filter!(row -> !ismissing(row.Leaf_area_17), df_leaf_area_17_long)
+
+p_leaf_area_17 = data(df_leaf_area_17_long) * mapping(:MAP, :Leaf_area_17, row=:Site, color=:type) * visual(Lines)
+fig_leaf_area_17 = draw(p_leaf_area_17; axis=(; xlabel="Month after planting", ylabel="Leaf area at rank 17"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
+save("2-results/calibration/XPalm/2.leaf_area_rank_17.png", fig_leaf_area_17) #!i think its good
 
 #!Female
 dfs_female = vcat([s["Female"] for s in simulations]...)
