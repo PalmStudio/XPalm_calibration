@@ -215,7 +215,7 @@ transform!(
         :PhytomerNumber => (x -> [missing; diff(x)]) => :number_phytomer_emmited
 )
 days_between_leaf.number_days_last_phytomer = days_between_leaf.days_leaf_phytomer ./ days_between_leaf.number_phytomer_emmited
-select!(days_between_leaf, :Site, :IdGenotype, :TreeId, :Date, :MAP, :PhytomerNumber, :number_days_last_phytomer)
+select!(days_between_leaf, :Site, :IdGenotype, :TreeId, :Date, :MAP, :PhytomerNumber, :number_days_last_phytomer, :number_phytomer_emmited)
 # p = data(dropmissing(days_between_leaf, :number_days_last_phytomer)) *
 #     mapping(:MAP, :days_leaf_phytomer, color=:TreeId, col=:IdGenotype, row=:Site) *
 #     visual(Lines)
@@ -228,8 +228,15 @@ mean_leaf_MAP = combine(
         :IdGenotype => first => :IdGenotype,
         :Date => last => :Date,
         :number_days_last_phytomer => mean => :phyllochron_days_per_MAP,
+        :number_phytomer_emmited => sum => :sum_n_phytomer_MAP,
 )
 
+dropmissing!(mean_leaf_MAP, :sum_n_phytomer_MAP)
+
+mean_leaf_MAP = transform(
+        groupby(mean_leaf_MAP, [:Site, :TreeId,]),
+        :sum_n_phytomer_MAP => (x -> [missing; diff(x)]) => :phytomer_emitted
+)
 CSV.write("2-results/calibration/CIGE/temporary_data/time_leaf_MAP.csv", mean_leaf_MAP)
 
 #average time between leaf emission and flowering per tree per phytomer and per MAP
