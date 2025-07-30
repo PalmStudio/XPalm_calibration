@@ -84,7 +84,6 @@ df_production = select(
         [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit,
         [:UnfertilFruitsFreshWeight, :FertilFruitsFreshWeight] => ByRow((uf, f) -> any(ismissing.([uf, f])) ? missing : uf + f) => :biomass_fresh_fruit,
         [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :ThirtyNutsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
-        #! check that the fruits biomass is total fruits biomass, and not per-fruit biomass (in this case, we have to x by fruit number)
         [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_dry_biomass,
         [:peduncleFreshWeight, :SpikeletsFreshWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_fresh_biomass
 )
@@ -119,8 +118,27 @@ trees_selected = filter(row -> row.StartMAP <= dict_start_site[row.Site] + 5, st
 # Filter-out the rows where the first measurements where at the MAP is less than the start month for each site
 df_production_MAP_filtered = filter(row -> row.TreeId in trees_selected.TreeId && minimum(row.MAP) .>= dict_start_site[row.Site], df_production_MAP)
 #! Check this with Raphael! We shouldn't have rows with missing BunchMass and values for e.g. DryMesocarpOilContent. See this to reproduce:
-filter(row -> ismissing(row.BunchMass), df_production_MAP_filtered)
-dropmissing!(df_production_MAP_filtered, :BunchMass)
+#filter(row -> ismissing(row.BunchMass), df_production_MAP_filtered)
+
+#!decided to put missing in all bunch component variabls in SMSE MAP 47 (29072025)
+vars_to_missing = [ #variable to make missing
+        :DryMesocarpOilContent,
+        :MesocarpsSampleWC,
+        :n_of_fruit,
+        :biomass_fresh_fruit,
+        :biomass_dry_fruit,
+        :stalk_dry_biomass,
+        :stalk_fresh_biomass
+]
+
+remove_SMSE_47 = ismissing.(df_production_MAP_filtered.BunchMass) .& (df_production_MAP_filtered.MAP .== 47) .& (df_production_MAP_filtered.Site .== "SMSE")
+
+for cols in vars_to_missing
+        df_production_MAP_filtered[remove_SMSE_47, cols] .= missing
+end
+
+#filter!(x -> ismissing(x.BunchMass), df_production_MAP_filtered) #!it happened once in thee PR too
+#dropmissing!(df_production_MAP_filtered, :BunchMass)
 
 # Removing some weird MesocarpsSampleWC measurements (3 values in PR):
 df_to_remove = filter(row -> !ismissing(row.MesocarpsSampleWC) && row.Site == "PR" && (row.MesocarpsSampleWC > 0.8 || row.MesocarpsSampleWC < 0.1), df_production_MAP_filtered, view=true)
