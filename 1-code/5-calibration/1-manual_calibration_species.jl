@@ -43,10 +43,10 @@ end
 # Transform the meteo dataframe in Weather object for speed:
 meteos = Dict(site => Weather(meteo) for (site, meteo) in meteos)
 
-# Importing the default parameters values
-params_default = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
-
 begin
+    # Importing the default parameters values
+    params_default = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
+
     params_SMSE = copy(params_default)
     params_SMSE["plot"]["latitude"] = 2.93416
     params_SMSE["plot"]["altitude"] = 15.5
