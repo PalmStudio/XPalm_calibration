@@ -6,8 +6,8 @@ using CairoMakie, AlgebraOfGraphics, Statistics
 using Dates
 
 meteo_smse = CSV.read("2-results/meteorology/meteo_smse_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Indonesia
-meteo_presco = CSV.read("2-results/meteorology/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Benin 
-meteo_towe = CSV.read("2-results/meteorology/meteo_towe_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Nigeria
+meteo_presco = CSV.read("2-results/meteorology/meteo_presco_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Nigeria 
+meteo_towe = CSV.read("2-results/meteorology/meteo_towe_cleaned.csv", missingstring=["NA", "NaN"], DataFrame) # Benin
 
 #1. Identify the nursery period
 #dataframe meteo nursery is coming from the average value of smse meteo (consider as the most favorable climate) along 1.5 years before the planting date
