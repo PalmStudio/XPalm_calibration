@@ -3,7 +3,7 @@
 using CSV, DataFrames, Dates
 using AlgebraOfGraphics, CairoMakie
 
-
+# Please run `1-CIGE_calibration_database.jl` first to generate the CIGE.csv file
 df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
 
 #Plot BunchMass
