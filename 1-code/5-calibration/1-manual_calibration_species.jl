@@ -65,12 +65,11 @@ begin
     params = Dict("SMSE" => params_SMSE, "PR" => params_PR, "TOWE" => params_TOWE,)
     out_vars = Dict{String,Any}(
         "Scene" => (:lai, :ET0, :leaf_area),
-        "Plant" => (:leaf_area, :biomass_bunch_harvested, :phytomer_count, :production_speed, :n_bunches_harvested_cum, :n_bunches_harvested, :biomass_bunch_harvested_cum,
-            :biomass_fruit_harvested),
+        "Plant" => (:leaf_area, :biomass_bunch_harvested, :phytomer_count, :production_speed, :n_bunches_harvested_cum, :n_bunches_harvested, :biomass_bunch_harvested_cum, :biomass_fruit_harvested),
         # "Soil" => (:ftsw, :qty_H2O_C_Roots, :transpiration),
         "Leaf" => (:leaf_area, :biomass, :rank),
         #"Phytomer" => (:TT_flowering,),
-        "Female" => (:biomass_bunch_harvested, :biomass_fruit_harvested, :fruits_number, :biomass_stalk_harvested, :biomass_fruits),
+        "Female" => (:biomass_bunch_harvested, :biomass_fruit_harvested, :fruits_number_harvested, :biomass_stalk_harvested,),
         # "Male" => (:biomass,),
         # "Internode" => (:biomass,),
     )
@@ -198,8 +197,7 @@ dfs_leaf = vcat([s["Leaf"] for s in simulations]...)
 sort!(dfs_leaf, [:Site, :timestep])
 filter!(x -> x.rank == 17, dfs_leaf)
 
-dfs_leaf_MAP = combine(groupby(dfs_leaf, [:Site, :MAP]),
-    :leaf_area => last => :Leaf_area_17)
+dfs_leaf_MAP = combine(groupby(dfs_leaf, [:Site, :MAP]), :leaf_area => last => :Leaf_area_17)
 
 df_leaf = innerjoin(dfs_leaf_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
 
@@ -214,9 +212,32 @@ save("2-results/calibration/XPalm/2.leaf_area_rank_17.png", fig_leaf_area_17) #!
 #!Female scale simulation
 dfs_female = vcat([s["Female"] for s in simulations]...)
 
-p = data(filter(x -> x.biomass_bunch_harvested > 0, dfs_female)) *
-    mapping(:MAP, :biomass_bunch_harvested, row=:Site) *
-    visual(Scatter)
+dfs_female_at_harvest = filter(x -> x.biomass_stalk_harvested > 0 && x.biomass_bunch_harvested > 0 && x.biomass_fruit_harvested > 0, dfs_female)
+df_yield_components = stack(rename(dfs_female_at_harvest, :biomass_stalk_harvested => :stalk, :biomass_bunch_harvested => :bunch, :biomass_fruit_harvested => :fruit), [:stalk, :bunch, :fruit], variable_name=:component, value_name=:biomass)
+
+p = data(df_yield_components) *
+    mapping(:MAP, :biomass => "Biomass at harvest (g bunch⁻¹)", color=:component, row=:Site) *
+    visual(Lines)
+draw(p)
+
+p = data(dfs_female_at_harvest) *
+    mapping(:MAP, :fruits_number_harvested => "Fruits per bunch at harvest (#)", row=:Site) *
+    visual(Lines)
+draw(p)
+
+p = data(dfs_female_at_harvest) *
+    mapping(:timestep, :biomass_bunch_harvested => "Bunch biomass at harvest (#)", row=:Site) *
+    visual(Lines)
+draw(p)
+
+p = data(dfs_female_at_harvest) *
+    mapping(:MAP, :final_potential_fruit_biomass => "Potential fruit biomass (g fruit⁻¹)", row=:Site) *
+    visual(Lines)
+draw(p)
+
+p = data(dfs_female_at_harvest) *
+    mapping(:MAP, :final_potential_biomass_oil_fruit => "Potential fruit oil biomass (g fruit⁻¹)", row=:Site) *
+    visual(Lines)
 draw(p)
 
 #bunch_biomass (g)
