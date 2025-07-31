@@ -101,7 +101,8 @@ df_production_MAP = combine(
         groupby(df_production, [:Site, :TreeId, :MAP]),
         :IdGenotype => unique => :IdGenotype,
         :Date => last => :Date,
-        :BunchMass => (x -> fn_no_missings(x, sum)) => :BunchMass,
+        :BunchMass => (x -> fn_no_missings(x, sum)) => :BunchMass, #!FFB per MAP per tree
+        :BunchMass => (x -> fn_no_missings(x, mean)) => :Average_bunch_mass_weight, #! AFB in one bunch      
         :n_of_bunch => (x -> fn_no_missings(x, sum)) => :n_of_bunch,
         :DryMesocarpOilContent => (x -> fn_no_missings(x, mean)) => :DryMesocarpOilContent,
         :MesocarpsSampleWC => (x -> fn_no_missings(x, mean)) => :MesocarpsSampleWC,
