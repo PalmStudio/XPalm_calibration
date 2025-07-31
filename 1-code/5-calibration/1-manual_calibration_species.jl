@@ -29,145 +29,12 @@ df_CIGE_species = combine( #here is we dont consider about the genotype thats wh
 df_CIGE_site = combine(groupby(df_CIGE, [:Site]),
     :BunchMass => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :avg_bunch_biomass)
 
-# Making the simulation
+#importing simulation data
+dfs_plant_MAP = CSV.read("2-results/calibration/Simulation/dfs_plant_MAP.csv", DataFrame)
+dfs_female = CSV.read("2-results/calibration/Simulation/dfs_female.csv", DataFrame)
+dfs_female_MAP = CSV.read("2-results/calibration/Simulation/dfs_female_MAP.csv", DataFrame)
+dfs_leaf_MAP = CSV.read("2-results/calibration/Simulation/dfs_leaf_MAP.csv", DataFrame)
 
-# Loading the meteorology data
-meteos = Dict(
-    "SMSE" => CSV.read("2-results/meteorology/meteo_smse_with_nursery.csv", DataFrame),
-    "PR" => CSV.read("2-results/meteorology/meteo_presco_with_nursery.csv", DataFrame),
-    "TOWE" => CSV.read("2-results/meteorology/meteo_towe_with_nursery.csv", DataFrame)
-)
-
-# Removing the year-month, and arranging the columns:
-for (site, meteo) in meteos
-    select!(meteo, :date, :MAP, :T, :Tmin, :Tmax, :Wind, :Rh, :Rh_max, :Rh_min, :Precipitations, :Ri_PAR_f, :Rg)
-end
-
-# Transform the meteo dataframe in Weather object for speed:
-meteos = Dict(site => Weather(meteo) for (site, meteo) in meteos)
-
-begin
-    # Importing the default parameters values
-    params_default = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
-
-    params_SMSE = copy(params_default)
-    params_SMSE["plot"]["latitude"] = 2.93416
-    params_SMSE["plot"]["altitude"] = 15.5
-
-    params_PR = copy(params_default)
-    params_PR["plot"]["latitude"] = 6.137
-    params_PR["plot"]["altitude"] = 15.5
-
-    params_TOWE = copy(params_default)
-    params_TOWE["plot"]["latitude"] = 7.00
-    params_TOWE["plot"]["altitude"] = 15.5
-
-    params = Dict("SMSE" => params_SMSE, "PR" => params_PR, "TOWE" => params_TOWE,)
-    out_vars = Dict{String,Any}(
-        "Scene" => (:lai, :ET0, :leaf_area),
-        "Plant" => (:leaf_area, :biomass_bunch_harvested, :phytomer_count, :production_speed, :n_bunches_harvested_cum, :n_bunches_harvested, :biomass_bunch_harvested_cum, :biomass_fruit_harvested),
-        # "Soil" => (:ftsw, :qty_H2O_C_Roots, :transpiration),
-        "Leaf" => (:leaf_area, :biomass, :rank),
-        #"Phytomer" => (:TT_flowering,),
-        "Female" => (:biomass_bunch_harvested, :biomass_fruit_harvested, :fruits_number_harvested, :biomass_stalk_harvested,),
-        # "Male" => (:biomass,),
-        # "Internode" => (:biomass,),
-    )
-
-
-    simulations = Dict{String,DataFrame}[]
-    for (site, m) in meteos
-        palm = XPalm.Palm(parameters=params[site])
-        df = xpalm(m, DataFrame, vars=out_vars, palm=palm)
-        for (k, v) in df
-            v[!, "Site"] .= site
-            # Add :date column by matching timestep
-            v[!, :date] = m.date[v.timestep]
-
-            planting_date = site == "SMSE" ? Date("2011-01-01") :
-                            site == "PR" ? Date("2010-05-01") :
-                            site == "TOWE" ? Date("2012-06-01") : missing
-            v[!, :planting_date] .= planting_date
-            v[!, :MAP] = m.MAP[v.timestep]
-        end
-        push!(simulations, df)
-    end
-end
-
-#dfs_scene = vcat([s["Scene"] for s in simulations]...)
-dfs_plant = vcat([s["Plant"] for s in simulations]...)
-sort!(dfs_plant, [:Site, :timestep])
-
-dfs_plant_MAP = combine(
-    groupby(dfs_plant, [:Site, :MAP]),
-    :leaf_area => last => :Leaf_area, #total leaf area per month #!done
-    :biomass_bunch_harvested => sum => :biomass_bunch_harvested_MAP, #total biomass bunch harvested
-    :biomass_bunch_harvested_cum => last => :biomass_bunch_harvested_cum, #dynamic cumulated bunch biomass per MAP
-    :biomass_fruit_harvested => sum => :biomass_fruit_harvested_MAP, #gr (?)
-    :n_bunches_harvested => sum => :total_n_bunches_harvested, #total number bunch per MAP (fluctuated)
-    :n_bunches_harvested_cum => last => :n_bunches_harvested_cum,#dynamic number bunch per MAP
-    :phytomer_count => last => :phytomer_count, #total number of phytomer per MAP
-    :phytomer_count => (x -> x[end] - x[1]) => :diff_phytomer_emmitted, #the difference phytomer emitted between MAP
-)
-
-#compute the dry fruit mass (per plant)
-CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
-water_content_mesocarp = 0.25  # Water content of the mesocarp
-dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
-
-transform!(groupby(dfs_plant_MAP, [:Site, :MAP]), #!need to check
-    :biomass_fruit_harvested_MAP => ByRow(x -> ismissing(x) ? missing : x * 1e-3 / CC_Fruit) => :total_biomass_dry_fruit)
-
-#plot simulation plant
-#leaf area 
-p_leaf_area = data(filter(x -> x.Leaf_area > 0, dfs_plant_MAP)) *
-              mapping(:MAP, :Leaf_area, row=:Site) *
-              visual(Lines)
-fig_leaf_area = draw(p_leaf_area)
-save("2-results/simulations/plot_sim/cum_leaf_area.png", fig_leaf_area)
-
-#biomas bunch harvested
-p_biomass_bunch_harvested = data(filter(x -> x.biomass_bunch_harvested_MAP > 0, dfs_plant_MAP)) *
-                            mapping(:MAP, :biomass_bunch_harvested_MAP, row=:Site) *
-                            visual(Lines)
-fig_biomass_bunch_harvested = draw(p_biomass_bunch_harvested)
-save("2-results/simulations/plot_sim/biomass_bunch_harvested.png", fig_biomass_bunch_harvested)
-
-#biomas bunch harvested cum
-p_biomass_bunch_harvested_cum = data(filter(x -> x.biomass_bunch_harvested_cum > 0, dfs_plant_MAP)) *
-                                mapping(:MAP, :biomass_bunch_harvested_cum, row=:Site) *
-                                visual(Lines)
-fig_biomass_bunch_harvested_cum = draw(p_biomass_bunch_harvested_cum)
-save("2-results/simulations/plot_sim/biomass_bunch_harvested_cum.png", fig_biomass_bunch_harvested_cum)
-
-#total n bunches harvested
-p_n_bunches_harvested = data(filter(x -> x.n_bunches_harvested_MAP > 0, dfs_plant_MAP)) *
-                        mapping(:MAP, :n_bunches_harvested_MAP, row=:Site) *
-                        visual(Lines)
-fig_n_bunches_harvested = draw(p_n_bunches_harvested)
-save("2-results/simulations/plot_sim/n_bunches_harvested.png", fig_n_bunches_harvested)
-
-#n bunches harvested cum
-p_n_bunches_harvested_cum = data(filter(x -> x.n_bunches_harvested_cum > 0, dfs_plant_MAP)) *
-                            mapping(:MAP, :n_bunches_harvested_cum, row=:Site) *
-                            visual(Lines)
-fig_n_bunches_harvested_cum = draw(p_n_bunches_harvested_cum)
-save("2-results/simulations/plot_sim/n_bunches_harvested_cum.png", fig_n_bunches_harvested_cum)
-
-#phytomer_count
-p_phytomer_count = data(filter(x -> x.phytomer_count > 0, dfs_plant_MAP)) *
-                   mapping(:MAP, :phytomer_count, row=:Site) *
-                   visual(Lines)
-fig_phytomer_count = draw(p_phytomer_count)
-save("2-results/simulations/plot_sim/phytomer_count.png", fig_phytomer_count)
-
-
-#diff_phytomer_emmitted
-p_diff_phytomer_emmitted = data(filter(x -> x.diff_phytomer_emmitted > 0, dfs_plant_MAP)) *
-                           mapping(:MAP, :diff_phytomer_emmitted, row=:Site) *
-                           visual(Lines)
-fig_diff_phytomer_emmitted = draw(p_diff_phytomer_emmitted)
-save("2-results/simulations/plot_sim/diff_phytomer_emmitted.png", fig_diff_phytomer_emmitted)
 
 #!Plant scale simulation
 df_plant = innerjoin(dfs_plant_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
@@ -193,11 +60,6 @@ save("2-results/calibration/XPalm/4.Total biomass dry fruit (kg plant-1 MAP-1).p
 
 
 #!Leaf scale simulation
-dfs_leaf = vcat([s["Leaf"] for s in simulations]...)
-sort!(dfs_leaf, [:Site, :timestep])
-filter!(x -> x.rank == 17, dfs_leaf)
-
-dfs_leaf_MAP = combine(groupby(dfs_leaf, [:Site, :MAP]), :leaf_area => last => :Leaf_area_17)
 
 df_leaf = innerjoin(dfs_leaf_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
 
@@ -210,55 +72,8 @@ fig_leaf_area_17 = draw(p_leaf_area_17; axis=(; xlabel="Month after planting", y
 save("2-results/calibration/XPalm/2.leaf_area_rank_17.png", fig_leaf_area_17) #!i think its good
 
 #!Female scale simulation
-dfs_female = vcat([s["Female"] for s in simulations]...)
-
-dfs_female_at_harvest = filter(x -> x.biomass_stalk_harvested > 0 && x.biomass_bunch_harvested > 0 && x.biomass_fruit_harvested > 0, dfs_female)
-df_yield_components = stack(rename(dfs_female_at_harvest, :biomass_stalk_harvested => :stalk, :biomass_bunch_harvested => :bunch, :biomass_fruit_harvested => :fruit), [:stalk, :bunch, :fruit], variable_name=:component, value_name=:biomass)
-
-p = data(df_yield_components) *
-    mapping(:MAP, :biomass => "Biomass at harvest (g bunch⁻¹)", color=:component, row=:Site) *
-    visual(Lines)
-draw(p)
-
-p = data(dfs_female_at_harvest) *
-    mapping(:MAP, :fruits_number_harvested => "Fruits per bunch at harvest (#)", row=:Site) *
-    visual(Lines)
-draw(p)
-
-p = data(dfs_female_at_harvest) *
-    mapping(:timestep, :biomass_bunch_harvested => "Bunch biomass at harvest (#)", row=:Site) *
-    visual(Lines)
-draw(p)
-
-p = data(dfs_female_at_harvest) *
-    mapping(:MAP, :final_potential_fruit_biomass => "Potential fruit biomass (g fruit⁻¹)", row=:Site) *
-    visual(Lines)
-draw(p)
-
-p = data(dfs_female_at_harvest) *
-    mapping(:MAP, :final_potential_biomass_oil_fruit => "Potential fruit oil biomass (g fruit⁻¹)", row=:Site) *
-    visual(Lines)
-draw(p)
-
-#bunch_biomass (g)
-df_female_MAP = combine(
-    groupby(dfs_female, [:Site, :MAP]),
-    :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_biomass, #average individual bunch biomass in one MAP in kg
-    :biomass_fruit_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_fruit_harvested_MAP, #change to kg and total it (?)
-)
-
-p = data(filter(x -> x.bunch_biomass > 0, df_female_MAP)) *
-    mapping(:MAP, :bunch_biomass, row=:Site) *
-    visual(Scatter)
-draw(p)
-
-p = data(filter(x -> x.biomass_fruit_harvested_MAP > 0, df_female_MAP)) *
-    mapping(:MAP, :biomass_fruit_harvested_MAP, row=:Site) *
-    visual(Scatter)
-draw(p)
-
 #average 1 bunch biomass all time (kg) #!good
-df_female_site = combine(groupby(df_female_MAP, [:Site]),
+df_female_site = combine(groupby(dfs_female_MAP, [:Site]),
     :bunch_biomass => (x -> mean(filter(x -> x > 0.0, x))) => :avg_bunch_biomass) #average individual bunch biomass each sites
 
 df_avg_bunch = innerjoin(df_female_site, df_CIGE_site, on=[:Site], makeunique=true, renamecols="_sim" => "_obs")
@@ -270,21 +85,6 @@ replace!(df_avg_bunch_long.type,
 p_avg_bunch_mass = data(df_avg_bunch_long) * mapping(:type, :avg_biomass_bunch, color=:type, col=:Site) * visual(BarPlot)
 fig_avg_bunch_mass = draw(p_avg_bunch; axis=(; ylabel="Average 1 bunch biomass per site (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
 save("2-results/calibration/XPalm/3.avg_bunch_mass_site.png", fig_avg_bunch_mass)
-
-# #biomass dry fruit in the female scale #!need to confirm (move in he plant first)
-# CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
-# water_content_mesocarp = 0.25  # Water content of the mesocarp
-# dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
-
-# dfs_dry_MAP = combine(groupby(df_female_MAP, [:Site, :MAP]), #!need to check
-#     :biomass_fruit_harvested_MAP => (x -> x / CC_Fruit) => :total_biomass_dry_fruit)
-# #data(dfs_dry_MAP) * mapping(:MAP, :biomass_dry_fruit, color=:Site => nonnumeric) * visual(Scatter) |> draw()
-
-# df_dry_fruit_female = innerjoin(dfs_dry_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
-# df_fruit_dry_long = stack(df_dry_fruit_female, [:total_biomass_dry_fruit_sim, :total_biomass_dry_fruit_obs], variable_name=:type, value_name=:biomass_dry_fruit)
-# p_fruit_dry = data(df_fruit_dry_long) * mapping(:MAP, :biomass_dry_fruit, row=:Site, color=:type) * visual(Lines)
-# fig_fruit_dry = draw(p_fruit_dry; axis=(; xlabel="Month after planting", ylabel="Total biomass dry fruit (kg plant-1 MAP-1)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
-# save("2-results/calibration/XPalm/4.Total biomass dry fruit (kg plant-1 MAP-1).png", fig_fruit_dry)
 
 #bunch biomass
 df_bunch_biomass = innerjoin(df_female_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
