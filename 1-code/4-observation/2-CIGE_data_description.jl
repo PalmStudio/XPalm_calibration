@@ -36,6 +36,13 @@ p_nFruit = data(filter(row -> !ismissing(row.n_of_fruit), df_CIGE)) * #!GE03 and
 fig_n_fruit = draw(p_nFruit; axis=(; xlabel="Month after planting", ylabel="Number of fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/n_of_fruit.png", fig_n_fruit)
 
+#plot number of bunch
+p_nBunch = data(filter(row -> !ismissing(row.n_of_bunch), df_CIGE)) *
+           mapping(:MAP, :n_of_bunch, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+           visual(Lines)
+fig_n_bunch = draw(p_nBunch; axis=(; xlabel="Month after planting", ylabel="Number of bunch"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+save("2-results/calibration/CIGE/n_of_bunch.png", fig_n_bunch)
+
 #plot biomass fresh fruit
 p_biomass_fresh_fruit = data(filter(row -> !ismissing(row.biomass_fresh_fruit), df_CIGE)) *
                         mapping(:MAP, :biomass_fresh_fruit, color=:TreeId, col=:IdGenotype, row=:Site) *

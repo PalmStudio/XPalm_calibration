@@ -82,6 +82,7 @@ df_production = select(
         filter_bunch,
         :Site, :IdGenotype => :IdGenotype, :TreeId, :HarvestDate => :Date, :MAP, :PhytomerNumber, :BunchMass, :DryMesocarpOilContent, :MesocarpsSampleWC,
         [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit,
+        :BunchMass => ByRow(x -> ismissing(x) ? missing : 1) => :n_of_bunch,
         [:UnfertilFruitsFreshWeight, :FertilFruitsFreshWeight] => ByRow((uf, f) -> any(ismissing.([uf, f])) ? missing : uf + f) => :biomass_fresh_fruit,
         [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :ThirtyNutsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
         [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_dry_biomass,
@@ -101,6 +102,7 @@ df_production_MAP = combine(
         :IdGenotype => unique => :IdGenotype,
         :Date => last => :Date,
         :BunchMass => (x -> fn_no_missings(x, sum)) => :BunchMass,
+        :n_of_bunch => (x -> fn_no_missings(x, sum)) => :n_of_bunch,
         :DryMesocarpOilContent => (x -> fn_no_missings(x, mean)) => :DryMesocarpOilContent,
         :MesocarpsSampleWC => (x -> fn_no_missings(x, mean)) => :MesocarpsSampleWC,
         :n_of_fruit => (x -> fn_no_missings(x, sum)) => :n_of_fruit,
@@ -124,6 +126,7 @@ df_production_MAP_filtered = filter(row -> row.TreeId in trees_selected.TreeId &
 vars_to_missing = [ #variable to make missing
         :DryMesocarpOilContent,
         :MesocarpsSampleWC,
+        :n_of_bunch,
         :n_of_fruit,
         :biomass_fresh_fruit,
         :biomass_dry_fruit,
