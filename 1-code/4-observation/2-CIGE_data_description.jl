@@ -197,3 +197,12 @@ p_avg_leaflet_SMSE = data(filter(row -> row.Site == "SMSE", stack_leaflet_area))
                      visual(Lines)
 fig_AverageleafletArea = draw(p_avg_leaflet_SMSE; axis=(; xlabel="Month after planting", ylabel="Average leaflet area position"), figure=(; size=(1000, 800)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/AverageleafletArea.png", fig_AverageleafletArea)
+
+#average individual bunch mass all map between sites
+
+df_avg_bunch = combine(groupby(df_CIGE, [:Site]), :BunchMass => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :bunch_biomass)
+
+p_avg_bunch = data(filter(row -> !ismissing(row.BunchMass), df_CIGE)) *
+              mapping(:MAP, :BunchMass, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+              visual(Lines)
+fig_bunchMass = draw(p_bunchMass; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
