@@ -18,76 +18,85 @@ genotype = [ #considered genotype
         "GE16"
 ]
 
-#add year after planting
-function year_planting!(df::DataFrame, map_col::Symbol)
-        df.Year = (df[!, map_col] .÷ 12) .+ 1
-        return df
-end
-
-year_planting!(df_bunch_component, :HarvestMAP)
 rename!(df_bunch_component, :HarvestMAP => :MAP)
-year_planting!(df_leaf_growth, :MAP)
-year_planting!(df_stem_growth, :MAP)
+#add year after planting
+# function year_planting!(df::DataFrame, map_col::Symbol)
+#         df.Year = (df[!, map_col] .÷ 12) .+ 1
+#         return df
+# end
+
+# year_planting!(df_bunch_component, :HarvestMAP)
+# rename!(df_bunch_component, :HarvestMAP => :MAP)
+# year_planting!(df_leaf_growth, :MAP)
+# year_planting!(df_stem_growth, :MAP)
 
 #special case for dataframe df_phenology because there is no any MAP column
-function mondf(d2::Date, d1::Date)
-        return (year(d2) - year(d1)) * 12 + (month(d2) - month(d1))
-end
+# function mondf(d2::Date, d1::Date)
+#         return (year(d2) - year(d1)) * 12 + (month(d2) - month(d1))
+# end
 
-function year_planting_2!(df::DataFrame)
-        n = nrow(df)
-        year_col = Vector{Union{Int,Missing}}(undef, n)
+# function year_planting_2!(df::DataFrame)
+#         n = nrow(df)
+#         year_col = Vector{Union{Int,Missing}}(undef, n)
 
-        last_valid_hmonth = missing
-        last_year = missing
+#         last_valid_hmonth = missing
+#         last_year = missing
 
-        for i in 1:n
-                pdate = df.PlantingDate[i]
-                hmonth = df.HarvestMonth[i]
-                abmonth = df.AbortedMonth[i]
-                asmonth = df.AppearedSpatheMonth[i]
+#         for i in 1:n
+#                 pdate = df.PlantingDate[i]
+#                 hmonth = df.HarvestMonth[i]
+#                 abmonth = df.AbortedMonth[i]
+#                 asmonth = df.AppearedSpatheMonth[i]
 
-                if hmonth !== missing
-                        event_month = hmonth
-                        last_valid_hmonth = hmonth
-                elseif abmonth !== missing || asmonth !== missing
-                        event_month = last_valid_hmonth
-                else
-                        event_month = missing
-                end
+#                 if hmonth !== missing
+#                         event_month = hmonth
+#                         last_valid_hmonth = hmonth
+#                 elseif abmonth !== missing || asmonth !== missing
+#                         event_month = last_valid_hmonth
+#                 else
+#                         event_month = missing
+#                 end
 
-                # if asmonth missing, take the value from previous row
-                if event_month !== missing && pdate !== missing
-                        map_month = mondf(event_month, pdate)
-                        this_year = floor(Int, map_month / 12) + 1
-                        year_col[i] = this_year
-                        last_year = this_year
-                else
-                        year_col[i] = last_year
-                end
-        end
+#                 # if asmonth missing, take the value from previous row
+#                 if event_month !== missing && pdate !== missing
+#                         map_month = mondf(event_month, pdate)
+#                         this_year = floor(Int, map_month / 12) + 1
+#                         year_col[i] = this_year
+#                         last_year = this_year
+#                 else
+#                         year_col[i] = last_year
+#                 end
+#         end
 
-        df.Year = year_col
-        return df
-end
+#         df.Year = year_col
+#         return df
+# end
 
-year_planting_2!(df_phenology)
+# year_planting_2!(df_phenology)
 
 "Bunch Component"
 filter_bunch = filter(row -> row.IdGenotype in genotype, df_bunch_component)
 
-#production per tree and cumulated production each tree
-# comb_prod = combine(groupby(filter_bunch, [:TreeId, :MAP, :Site, :PhytomerNumber]), :BunchMass => (x -> sum(skipmissing(x))) => :Production_mes, :IdGenotype => first => :IdGenotype, :HarvestDate => unique => :Date)
-df_production = select(
-        filter_bunch,
+# We remove rows where all the bunch component variables are missing. This happens on the few first MAPs for some trees, where we don't have any measurements:
+df_production = filter(
+        row -> !(ismissing(row.BunchMass) && ismissing(row.DryMesocarpOilContent) && ismissing(row.MesocarpsSampleWC) && ismissing(row.NumberOfFertilFruits) && ismissing(row.NumberOfUnfertilFruits) &&
+                 ismissing(row.FertilFruitsFreshWeight) && ismissing(row.UnfertilFruitsFreshWeight) && ismissing(row.peduncleDryWeight) && ismissing(row.SpikeletsDryWeight) &&
+                 ismissing(row.UnfertilFruitsDryWeight) && ismissing(row.peduncleFreshWeight) && ismissing(row.SpikeletsFreshWeight)),
+        filter_bunch
+)
+
+# Computing new variables and keeping only the ones we need:
+select!(
+        df_production,
         :Site, :IdGenotype => :IdGenotype, :TreeId, :HarvestDate => :Date, :MAP, :PhytomerNumber, :BunchMass, :DryMesocarpOilContent, :MesocarpsSampleWC,
         [:NumberOfFertilFruits, :NumberOfUnfertilFruits] => ((f, n) -> ifelse.(ismissing.(f) .| ismissing.(n), missing, f .+ n)) => :n_of_fruit,
-        :BunchMass => ByRow(x -> ismissing(x) ? missing : 1) => :n_of_bunch,
+        # We use FertilFruitsFreshWeight to compute the number of bunches, as other variables were not always measured (e.g. BunchMass is curiously not always available)
         [:UnfertilFruitsFreshWeight, :FertilFruitsFreshWeight] => ByRow((uf, f) -> any(ismissing.([uf, f])) ? missing : uf + f) => :biomass_fresh_fruit,
         [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :ThirtyNutsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
         [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_dry_biomass,
         [:peduncleFreshWeight, :SpikeletsFreshWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_fresh_biomass
 )
+# We have missing measurements at MAP 47 in SMSE for some variables (BunchMass, UnfertilFruitsDryWeight...).
 
 function fn_no_missings(values, fn)
         if all(ismissing.(values))
@@ -97,52 +106,60 @@ function fn_no_missings(values, fn)
         end
 end
 
+# Integrating at MAP level for each tree each site (because we can't compare the prodution at phytomer level with the model as each phytomer has its own phenology)
 df_production_MAP = combine(
         groupby(df_production, [:Site, :TreeId, :MAP]),
         :IdGenotype => unique => :IdGenotype,
         :Date => last => :Date,
-        :BunchMass => (x -> fn_no_missings(x, sum)) => :BunchMass, #!FFB per MAP per tree
-        :BunchMass => (x -> fn_no_missings(x, mean)) => :Average_bunch_mass_weight, #! AFB in one bunch      
-        :n_of_bunch => (x -> fn_no_missings(x, sum)) => :n_of_bunch,
+        :BunchMass => sum => :bunch_fresh_mass_total, #!FFB per MAP per tree, we don't use `fn_no_missings` because its a cumulation of all bunches harvested, if there is a missing, we don't know the total bunch mass harvested
+        :BunchMass => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_average, #! AFB in one bunch. Here we use `fn_no_missings` because we want the value for one bunch (preferably in average)
+        nrow => :n_of_bunch,
         :DryMesocarpOilContent => (x -> fn_no_missings(x, mean)) => :DryMesocarpOilContent,
         :MesocarpsSampleWC => (x -> fn_no_missings(x, mean)) => :MesocarpsSampleWC,
-        :n_of_fruit => (x -> fn_no_missings(x, sum)) => :n_of_fruit,
-        :biomass_fresh_fruit => (x -> fn_no_missings(x, sum)) => :biomass_fresh_fruit,
-        :biomass_dry_fruit => (x -> fn_no_missings(x, sum)) => :biomass_dry_fruit,
-        :stalk_dry_biomass => (x -> fn_no_missings(x, sum)) => :stalk_dry_biomass,
-        :stalk_fresh_biomass => (x -> fn_no_missings(x, sum)) => :stalk_fresh_biomass,
+        :n_of_fruit => sum => :n_of_fruit_total,
+        :n_of_fruit => (x -> fn_no_missings(x, mean)) => :n_of_fruit_average,
+        # Note on the following variables: we cannot use the sum because only one bunch out of many (from different trees of the same genotype) was dissected per observation date:
+        :biomass_fresh_fruit => (x -> fn_no_missings(x, mean)) => :biomass_fresh_fruit_per_bunch, #! Fresh mesocarp biomass per bunch.
+        :biomass_dry_fruit => (x -> fn_no_missings(x, mean)) => :biomass_dry_fruit_per_bunch,
+        :stalk_dry_biomass => (x -> fn_no_missings(x, mean)) => :stalk_dry_biomass_per_bunch,
+        :stalk_fresh_biomass => (x -> fn_no_missings(x, mean)) => :stalk_fresh_biomass_per_bunch,
+        # :bunch_fresh_mass => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch,
+        [:stalk_dry_biomass, :biomass_dry_fruit, :BunchMass] => ((stalk_dry, fruits_dry, bunch_wet) -> fn_no_missings(1 .- ((stalk_dry .+ fruits_dry) ./ bunch_wet), mean)) => :bunch_water_content
+        # [:stalk_dry_biomass, :biomass_dry_fruit, :BunchMass] => ((stalk_dry, fruits_dry, bunch_wet) -> (1 .- ((stalk_dry .+ fruits_dry) ./ bunch_wet), mean)) => :bunch_water_content
 )
 
-df_start_measurement_each_site = combine(groupby(dropmissing(df_production_MAP, :BunchMass), :Site), :MAP => minimum => :StartMAP)
+transform!(df_production_MAP, :bunch_water_content => ByRow(x -> ismissing(x) ? missing : (x < 0.0 ? 0.0 : x)) => :bunch_water_content) #! to avoid negative values (see graph below)
+
+# Average water content of the bunches per site:
+combine(groupby(df_production_MAP, :Site), :bunch_water_content => (x -> mean(skipmissing(x))) => :avg_bunch_water_content)
+# 3×2 DataFrame
+#  Row │ Site     avg_bunch_water_content 
+#      │ String7  Float64                 
+# ─────┼──────────────────────────────────
+#    1 │ PR                      0.355204
+#    2 │ SMSE                    0.41636
+#    3 │ TOWE                    0.380513
+# Total average is 38.5% water content in average -> mean(skipmissing(df_production_MAP.bunch_water_content))
+
+# Plotting the total fresh fruit biomass + stalk fresh biomass against the bunch mass (should be the same approximately):
+# df_test = DataFrame(ffb=df_production.biomass_fresh_fruit .+ df_production.stalk_fresh_biomass, BunchMass=df_production.BunchMass)
+# f, ax, p = scatter(df_test.BunchMass, df_test.ffb, axis=(ylabel="Bunch total fresh mass (kg)", xlabel="Sum of fruits and stalk fresh mass (kg)"))
+# ablines!(ax, [0], [1], color=:grey, linestyle=:dash)
+# f
+
+transform!(
+        df_production_MAP,
+        [:bunch_fresh_mass_total, :bunch_water_content] => ((biomass_fresh, water_content) -> biomass_fresh .* (1.0 .- water_content)) => :bunch_dry_mass_total, #! total dry mass of the bunch, approximated using the water content of one bunch per progeny in a measurement sessions (kg)
+        [:bunch_fresh_mass_average, :bunch_water_content] => ((biomass_fresh, water_content) -> biomass_fresh .* (1.0 .- water_content)) => :bunch_dry_mass_per_bunch,
+)
+
+df_start_measurement_each_site = combine(groupby(dropmissing(df_production_MAP, :bunch_fresh_mass_total), :Site), :MAP => minimum => :StartMAP)
 dict_start_site = Dict(zip(df_start_measurement_each_site.Site, df_start_measurement_each_site.StartMAP))
-start_MAP_Tree = combine(groupby(dropmissing(df_production_MAP, :BunchMass), [:Site, :TreeId]), :MAP => minimum => :StartMAP)
+start_MAP_Tree = combine(groupby(dropmissing(df_production_MAP, :bunch_fresh_mass_total), [:Site, :TreeId]), :MAP => minimum => :StartMAP)
 trees_selected = filter(row -> row.StartMAP <= dict_start_site[row.Site] + 5, start_MAP_Tree) #! we keep trees that have their first measurement within 5 months after the start month for each site
 
 # Filter-out the rows where the first measurements where at the MAP is less than the start month for each site
 df_production_MAP_filtered = filter(row -> row.TreeId in trees_selected.TreeId && minimum(row.MAP) .>= dict_start_site[row.Site], df_production_MAP)
-#! Check this with Raphael! We shouldn't have rows with missing BunchMass and values for e.g. DryMesocarpOilContent. See this to reproduce:
-#filter(row -> ismissing(row.BunchMass), df_production_MAP_filtered)
-
-#!decided to put missing in all bunch component variabls in SMSE MAP 47 (29072025)
-vars_to_missing = [ #variable to make missing
-        :DryMesocarpOilContent,
-        :MesocarpsSampleWC,
-        :n_of_bunch,
-        :n_of_fruit,
-        :biomass_fresh_fruit,
-        :biomass_dry_fruit,
-        :stalk_dry_biomass,
-        :stalk_fresh_biomass
-]
-
-remove_SMSE_47 = ismissing.(df_production_MAP_filtered.BunchMass) .& (df_production_MAP_filtered.MAP .== 47) .& (df_production_MAP_filtered.Site .== "SMSE")
-
-for cols in vars_to_missing
-        df_production_MAP_filtered[remove_SMSE_47, cols] .= missing
-end
-
-#filter!(x -> ismissing(x.BunchMass), df_production_MAP_filtered) #!it happened once in thee PR too
-#dropmissing!(df_production_MAP_filtered, :BunchMass)
 
 # Removing some weird MesocarpsSampleWC measurements (3 values in PR):
 df_to_remove = filter(row -> !ismissing(row.MesocarpsSampleWC) && row.Site == "PR" && (row.MesocarpsSampleWC > 0.8 || row.MesocarpsSampleWC < 0.1), df_production_MAP_filtered, view=true)
@@ -150,20 +167,20 @@ df_to_remove.MesocarpsSampleWC .= missing
 
 # Same for stalk_dry_biomass
 # df_to_remove = filter(row -> row.TreeId == "TOWE_POGP37_2_GE12_4_28" && row.MAP == 89, df_production_MAP_filtered, view=true) #? most probably a mistake in the point -> 15.5416 is probably 1.55416
-df_to_remove = filter(row -> !ismissing(row.stalk_dry_biomass) && row.stalk_dry_biomass > 5.0, df_production_MAP_filtered, view=true)
-df_to_remove.stalk_dry_biomass .= missing
+df_to_remove = filter(row -> !ismissing(row.stalk_dry_biomass_per_bunch) && row.stalk_dry_biomass_per_bunch > 5.0, df_production_MAP_filtered, view=true)
+df_to_remove.stalk_dry_biomass_per_bunch .= missing
 
 # Same for :stalk_fresh_biomass
-df_to_remove = filter(row -> !ismissing(row.stalk_fresh_biomass) && row.stalk_fresh_biomass > 15.0, df_production_MAP_filtered, view=true)
-df_to_remove.stalk_fresh_biomass .= missing
+df_to_remove = filter(row -> !ismissing(row.stalk_fresh_biomass_per_bunch) && row.stalk_fresh_biomass_per_bunch > 15.0, df_production_MAP_filtered, view=true)
+df_to_remove.stalk_fresh_biomass_per_bunch .= missing
 
 # using AlgebraOfGraphics
-# p = data(transform(groupby(df_production_MAP_filtered, :TreeId), :BunchMass => (x -> cumsum(skipmissing(x))) => :BunchMass_cum)) *
-#     mapping(:MAP, :BunchMass_cum, color=:TreeId, col=:IdGenotype, row=:Site) *
+# p = data(transform(groupby(df_production_MAP_filtered, :TreeId), :bunch_fresh_mass_total => (x -> cumsum(skipmissing(x))) => :bunch_fresh_mass_total_cum)) *
+#     mapping(:MAP, :bunch_fresh_mass_total_cum, color=:TreeId, col=:IdGenotype, row=:Site) *
 #     visual(Lines)
 # draw(p, legend=(show=false,), figure=(size=(1000, 600),), axis=(xlabel="Month after planting", ylabel="Bunch mass (kg)"))
 sort!(df_production_MAP_filtered, [:Site, :MAP])
-CSV.write("2-results/calibration/CIGE/temporary_data/cumulated_production_mes.csv", df_production_MAP_filtered)
+CSV.write("2-results/calibration/CIGE/temporary_data/production_cige.csv", df_production_MAP_filtered)
 
 "Morphology"
 df_filter_leaf = filter(row -> row.IdGenotype in genotype && row.TreeId in trees_selected.TreeId, df_leaf_growth)
@@ -201,7 +218,7 @@ CSV.write("2-results/calibration/CIGE/temporary_data/data_leaf_rank_17.csv", df_
 "stem growth"
 filter_stem = filter(row -> row.IdGenotype in genotype, df_stem_growth)
 rename!(filter_stem, :ObservationDate => :Date)
-select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber, :Year, :PlantingDate))
+select!(filter_stem, Not(:Plot, :LineNumber, :TreeNumber, :PlantingDate))
 dropmissing!(filter_stem, :Height) #dropmissing based on the height
 CSV.write("2-results/calibration/CIGE/temporary_data/data_stem.csv", filter_stem)
 
@@ -298,7 +315,7 @@ CSV.write("2-results/calibration/CIGE/temporary_data/time_flowering_harvest_MAP.
 
 # Making the CIGE calibration dataframe:
 # Tree scale
-mes_cum_prod = CSV.read("2-results/calibration/CIGE/temporary_data/cumulated_production_mes.csv", DataFrame)
+mes_cum_prod = CSV.read("2-results/calibration/CIGE/temporary_data/production_cige.csv", DataFrame)
 mes_cum_n_new_leaf_emitted = CSV.read("2-results/calibration/CIGE/temporary_data/cum_n_new_leaf_emitted.csv", DataFrame)
 mes_leaf_MAP = CSV.read("2-results/calibration/CIGE/temporary_data/time_leaf_MAP.csv", DataFrame)
 mes_flowering_MAP = CSV.read("2-results/calibration/CIGE/temporary_data/time_leaf_flowering_MAP.csv", DataFrame)

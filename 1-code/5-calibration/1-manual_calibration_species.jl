@@ -21,18 +21,25 @@ df_CIGE_species = combine( #here is we dont consider about the genotype thats wh
     groupby(df_CIGE, [:Site, :MAP]),
     :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :Cumulated_n_leaf_emitted, #!good
     :LeafArea => (x -> fn_no_missings(x, mean)) => :Leaf_area_17,
-    :BunchMass => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_biomass, # in g,
-    :biomass_dry_fruit => (x -> fn_no_missings(x, mean)) => :total_biomass_dry_fruit, #total in kg #!use mean to get the value from 1 tree, the sum will compute all tree
-    :n_of_bunch => (x -> fn_no_missings(x, mean)) => :total_n_bunches_harvested
+    :bunch_fresh_mass_total => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_fresh_biomass, # in g,
+    :bunch_fresh_mass_average => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_fresh_mass_per_bunch, # in g
+    :bunch_dry_mass_total => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_dry_biomass, # in g,
+    :bunch_dry_mass_per_bunch => (x -> fn_no_missings(x, mean) .* 1e3) => :bunch_dry_mass_per_bunch, # in g
+    :biomass_fresh_fruit_per_bunch => (x -> fn_no_missings(x, mean) .* 1e3) => :biomass_fresh_fruit_per_bunch, #average in g
+    :biomass_dry_fruit_per_bunch => (x -> fn_no_missings(x, mean)) => :biomass_dry_fruit_per_bunch, #average in kg
+    :n_of_bunch => (x -> fn_no_missings(x, mean)) => :total_n_bunches_harvested,
+    :n_of_fruit_total => (x -> fn_no_missings(x, mean)) => :total_n_fruit_harvested,
+    :n_of_fruit_average => (x -> fn_no_missings(x, mean)) => :avg_n_fruit_per_bunch,
+    :stalk_dry_biomass_per_bunch => (x -> fn_no_missings(x, mean) .* 1e3) => :stalk_dry_biomass_per_bunch, # in g
+    :stalk_fresh_biomass_per_bunch => (x -> fn_no_missings(x, mean) .* 1e3) => :stalk_fresh_biomass_per_bunch, # in g
+    :bunch_water_content => (x -> fn_no_missings(x, mean)) => :bunch_water_content # in fraction
 )
 
-df_CIGE_site = combine(groupby(df_CIGE, [:Site]),
-    :BunchMass => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :avg_bunch_biomass)
+df_CIGE_site = combine(groupby(df_CIGE, [:Site]), :bunch_fresh_mass_total => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :avg_bunch_fresh_biomass)
 
 #importing simulation data
 dfs_plant_MAP = CSV.read("2-results/calibration/Simulation/dfs_plant_MAP.csv", DataFrame)
 dfs_female = CSV.read("2-results/calibration/Simulation/dfs_female.csv", DataFrame)
-dfs_female_MAP = CSV.read("2-results/calibration/Simulation/dfs_female_MAP.csv", DataFrame)
 dfs_leaf_MAP = CSV.read("2-results/calibration/Simulation/dfs_leaf_MAP.csv", DataFrame)
 
 
@@ -74,21 +81,21 @@ save("2-results/calibration/XPalm/2.leaf_area_rank_17.png", fig_leaf_area_17) #!
 #!Female scale simulation
 #average 1 bunch biomass all time (kg) #!good
 df_female_site = combine(groupby(dfs_female_MAP, [:Site]),
-    :bunch_biomass => (x -> mean(filter(x -> x > 0.0, x))) => :avg_bunch_biomass) #average individual bunch biomass each sites
+    :bunch_fresh_biomass => (x -> mean(filter(x -> x > 0.0, x))) => :avg_bunch_fresh_biomass) #average individual bunch biomass each sites
 
 df_avg_bunch = innerjoin(df_female_site, df_CIGE_site, on=[:Site], makeunique=true, renamecols="_sim" => "_obs")
-df_avg_bunch_long = stack(df_avg_bunch, [:avg_bunch_biomass_sim, :avg_bunch_biomass_obs], variable_name=:type, value_name=:avg_biomass_bunch)
+df_avg_bunch_long = stack(df_avg_bunch, [:avg_bunch_fresh_biomass_sim, :avg_bunch_fresh_biomass_obs], variable_name=:type, value_name=:avg_biomass_bunch)
 replace!(df_avg_bunch_long.type,
-    "avg_bunch_biomass_obs" => "Observation",
-    "avg_bunch_biomass_sim" => "Simulation"
+    "avg_bunch_fresh_biomass_obs" => "Observation",
+    "avg_bunch_fresh_biomass_sim" => "Simulation"
 )
 p_avg_bunch_mass = data(df_avg_bunch_long) * mapping(:type, :avg_biomass_bunch, color=:type, col=:Site) * visual(BarPlot)
 fig_avg_bunch_mass = draw(p_avg_bunch; axis=(; ylabel="Average 1 bunch biomass per site (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
 save("2-results/calibration/XPalm/3.avg_bunch_mass_site.png", fig_avg_bunch_mass)
 
 #bunch biomass
-df_bunch_biomass = innerjoin(df_female_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
-df_bunch_biomass_long = stack(df_bunch_biomass, [:bunch_biomass_sim, :bunch_biomass_obs], variable_name=:type, value_name=:bunch_biomass)
-p_bunch_biomass = data(df_bunch_biomass_long) * mapping(:MAP, :bunch_biomass, row=:Site, color=:type) * visual(Lines)
-fig_bunch_biomass = draw(p_bunch_biomass; axis=(; xlabel="Month after planting", ylabel="Bunch biomass (g)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
-save("2-results/calibration/XPalm/BunchMass.png", fig_bunch_biomass)
+df_bunch_fresh_biomass = innerjoin(df_female_MAP, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="_sim" => "_obs")
+df_bunch_fresh_biomass_long = stack(df_bunch_fresh_biomass, [:bunch_fresh_biomass_sim, :bunch_fresh_biomass_obs], variable_name=:type, value_name=:bunch_fresh_biomass)
+p_bunch_fresh_biomass = data(df_bunch_fresh_biomass_long) * mapping(:MAP, :bunch_fresh_biomass, row=:Site, color=:type) * visual(Lines)
+fig_bunch_fresh_biomass = draw(p_bunch_fresh_biomass; axis=(; xlabel="Month after planting", ylabel="Bunch biomass (g)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
+save("2-results/calibration/XPalm/bunch_mass_per_MAP.png", fig_bunch_fresh_biomass)

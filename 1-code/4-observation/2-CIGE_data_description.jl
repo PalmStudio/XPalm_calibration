@@ -7,8 +7,8 @@ using AlgebraOfGraphics, CairoMakie
 df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
 
 #Plot BunchMass
-p_bunchMass = data(filter(row -> !ismissing(row.BunchMass), df_CIGE)) *
-              mapping(:MAP, :BunchMass, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+p_bunchMass = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
+              mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
               visual(Lines)
 fig_bunchMass = draw(p_bunchMass; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 mkpath("2-results/calibration/CIGE")
@@ -207,9 +207,9 @@ save("2-results/calibration/CIGE/AverageleafletArea.png", fig_AverageleafletArea
 
 #average individual bunch mass all map between sites
 
-df_avg_bunch = combine(groupby(df_CIGE, [:Site]), :BunchMass => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :bunch_biomass)
+df_avg_bunch = combine(groupby(df_CIGE, [:Site]), :bunch_fresh_mass_total => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :bunch_biomass)
 
-p_avg_bunch = data(filter(row -> !ismissing(row.BunchMass), df_CIGE)) *
-              mapping(:MAP, :BunchMass, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+p_avg_bunch = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
+              mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
               visual(Lines)
 fig_bunchMass = draw(p_bunchMass; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
