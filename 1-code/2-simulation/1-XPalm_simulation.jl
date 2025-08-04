@@ -4,7 +4,7 @@ using DataFrames, CSV, YAML, StatsBase, Dates
 using CairoMakie, AlgebraOfGraphics, Statistics
 
 current_pwd = @__DIR__
-includet(joinpath(current_pwd, "../XPalmCalibration/XPalmCalibration.jl"))
+include(joinpath(current_pwd, "../XPalmCalibration/XPalmCalibration.jl"))
 using .XPalmCalibration
 
 # Making the simulation
@@ -60,6 +60,13 @@ filter!(x -> x.rank == 17, dfs_leaf)
 dfs_leaf_MAP = combine(groupby(dfs_leaf, [:Site, :MAP]), :leaf_area => last => :Leaf_area_17)
 #!female scale
 dfs_female = vcat([s["Female"] for s in simulations]...)
+dfs_female_MAP = combine(
+    groupby(dfs_female, [:Site, :MAP]),
+    :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_mass_per_bunch, #average individual bunch biomass in one MAP in kg
+    :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
+    :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_dry_fruit_per_bunch, #change to kg and total it (?)
+    :fruits_number_harvested => mean => :avg_n_fruit_per_bunch,
+)
 
 # df_female_MAP = combine(
 #     groupby(dfs_female, [:Site, :MAP]),
