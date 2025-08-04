@@ -15,7 +15,7 @@ function integrate_simulation_by_map(simulations)
         :biomass_bunch_harvested => sum => :biomass_bunch_harvested_MAP, #total biomass bunch harvested
         :biomass_bunch_harvested_cum => last => :biomass_bunch_harvested_cum, #dynamic cumulated bunch biomass per MAP
         :biomass_fruit_harvested => sum => :biomass_fruit_harvested_MAP, #gr (?)
-        :n_bunches_harvested => sum => :total_n_bunches_harvested, #total number bunch per MAP (fluctuated)
+        :n_bunches_harvested => sum => :total_n_bunches_harvested, #!2 total number bunch per MAP (fluctuated)
         :n_bunches_harvested_cum => last => :n_bunches_harvested_cum,#dynamic number bunch per MAP
         :phytomer_count => last => :phytomer_count, #total number of phytomer per MAP
         :phytomer_count => (x -> x[end] - x[1]) => :diff_phytomer_emmitted, #the difference phytomer emitted between MAP

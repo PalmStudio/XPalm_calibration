@@ -6,7 +6,7 @@ using XPalm
 using YAML
 using PlantMeteo
 
-includet(joinpath(@__DIR__, "../XPalmCalibration/XPalmCalibration.jl"))
+include(joinpath(@__DIR__, "../XPalmCalibration/XPalmCalibration.jl"))
 using .XPalmCalibration
 
 # Importing CIGE data
@@ -22,7 +22,7 @@ end
 
 df_CIGE_species = combine( #here is we dont consider about the genotype thats why mostly we use the mean from all treeId to get the value of each tree
     groupby(df_CIGE, [:Site, :MAP]),
-    :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :cumulated_n_leaf_emitted, #!good
+    :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :cumulated_n_leaf_emitted,
     :LeafArea => (x -> fn_no_missings(x, mean)) => :Leaf_area_17,
     :bunch_fresh_mass_total => (x -> fn_no_missings(x, mean)) => :bunch_fresh_biomass, # in kg,
     :bunch_fresh_mass_average => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch, # in kg
@@ -53,6 +53,15 @@ out_vars = Dict{String,Any}(
 
 simulation_before = nothing
 
+# #compute the dry fruit mass (per plant)
+# CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
+# water_content_mesocarp = 0.25  # Water content of the mesocarp
+# dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
+
+# transform!(groupby(simulation_map.plant, [:Site, :MAP]), #!need to check
+#     :biomass_fruit_harvested_MAP => ByRow(x -> ismissing(x) ? missing : x * 1e-3 / CC_Fruit) => :fruit_dry_biomass) #!3 fruit dry mass from all bunches (plat -1 -MAP -1)
+
+
 begin
     params_default = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
     # Choosing the output variables to be saved:
@@ -71,7 +80,13 @@ begin
     df_plant = innerjoin(simulation_map.plant, simulation_before.plant, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
     df_plant = innerjoin(df_plant, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
 
-    evaluate(df_plant, "2-results/calibration/XPalm")
+    df_female = innerjoin(simulation_map.female, simulation_before.female, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
+    df_female = innerjoin(df_female, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
+
+    #!to be able to compare the cumulation variables, set the offset value as 0 in the same MAP
+
+
+    evaluate(df_plant, df_female, "2-results/calibration/XPalm")
     # XPalmCalibration.evaluate_phyllochron(df_plant) #plot leaf emitted
     simulation_before = simulation_map
     nothing
@@ -89,7 +104,7 @@ dfs_plant_MAP = simulation_map.plant
 dfs_leaf_MAP = simulation_map.leaf
 dfs_female = simulation_map.female
 
-#plot total number of bunch per plant
+#plot total number of bunch per plant #!done
 df_n_bunch_long = stack(df_plant, [:total_n_bunches_harvested_sim, :total_n_bunches_harvested_obs], variable_name=:type, value_name=:total_n_bunches_harvested)
 p_n_bunch = data(df_n_bunch_long) * mapping(:MAP, :total_n_bunches_harvested, row=:Site, color=:type) * visual(Lines)
 fig_n_bunch = draw(p_n_bunch; axis=(; xlabel="Month after planting", ylabel="Total number of bunch harvested (plant-1 MAP-1)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
