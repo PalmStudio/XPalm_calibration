@@ -62,12 +62,16 @@ function integrate_simulation_by_map(simulations)
 
 
     dfs_female = vcat([s["Female"] for s in simulations]...)
-    df_female_MAP = combine(
+    dfs_female_MAP = combine(
         groupby(dfs_female, [:Site, :MAP]),
         :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_mass_per_bunch, #average individual bunch biomass in one MAP in kg
         :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
         :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_dry_fruit_per_bunch, #change to kg and total it (?)
+        :fruits_number_harvested => mean => :avg_n_fruit_per_bunch,
     )
 
-    return (plant=dfs_plant_MAP, leaf=dfs_leaf_MAP, female=df_female_MAP)
+    #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
+    dfs_female_MAP[!, :bunch_fresh_mass_per_bunch] = (dfs_female_MAP.bunch_dry_mass_per_bunch ./ CC_Fruit) .* dry_to_fresh_ratio #!FFB
+
+    return (plant=dfs_plant_MAP, leaf=dfs_leaf_MAP, female=dfs_female_MAP)
 end
