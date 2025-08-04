@@ -22,12 +22,12 @@ end
 
 df_CIGE_species = combine( #here is we dont consider about the genotype thats why mostly we use the mean from all treeId to get the value of each tree
     groupby(df_CIGE, [:Site, :MAP]),
-    :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :cumulated_n_leaf_emitted,
-    :LeafArea => (x -> fn_no_missings(x, mean)) => :Leaf_area_17,
+    :Cumulated_n_leaf_emitted => (x -> fn_no_missings(x, mean)) => :cumulated_n_leaf_emitted, #!done
+    :LeafArea => (x -> fn_no_missings(x, mean)) => :Leaf_area_17, #average leaf area at rank 17 (plant -1)
     :bunch_fresh_mass_total => (x -> fn_no_missings(x, mean)) => :bunch_fresh_biomass, # in kg,
     :bunch_fresh_mass_average => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch, # in kg
     :bunch_dry_mass_total => (x -> fn_no_missings(x, mean)) => :bunch_dry_biomass, # in kg,
-    :bunch_dry_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :bunch_dry_mass_per_bunch, # in kg
+    :bunch_dry_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :bunch_dry_mass_per_bunch, # in kg #! done
     :biomass_fresh_fruit_per_bunch => (x -> fn_no_missings(x, mean)) => :biomass_fresh_fruit_per_bunch, #average in kg
     :biomass_dry_fruit_per_bunch => (x -> fn_no_missings(x, mean)) => :biomass_dry_fruit_per_bunch, #average in kg
     :n_of_bunch => (x -> fn_no_missings(x, mean)) => :total_n_bunches_harvested,
@@ -67,10 +67,7 @@ begin
     # Choosing the output variables to be saved:
     simulations = run_simulations_all_cige_sites(params_default, out_vars, meteos)
     simulation_map = integrate_simulation_by_map(simulations)
-    transform!(
-        groupby(simulation_map.plant, [:Site]),
-        :phytomer_count => (x -> x .- first(x)) => :cumulated_n_leaf_emitted,
-    )
+
     name_previous = "previous"
     name_current = "current"
     if isnothing(simulation_before)
@@ -83,10 +80,11 @@ begin
     df_female = innerjoin(simulation_map.female, simulation_before.female, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
     df_female = innerjoin(df_female, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
 
-    #!to be able to compare the cumulation variables, set the offset value as 0 in the same MAP
+    df_leaf = innerjoin(simulation_map.leaf, simulation_before.leaf, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
+    df_leaf = innerjoin(df_leaf, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
 
 
-    evaluate(df_plant, df_female, "2-results/calibration/XPalm")
+    evaluate(df_plant, df_female, df_leaf, "2-results/calibration/XPalm")
     # XPalmCalibration.evaluate_phyllochron(df_plant) #plot leaf emitted
     simulation_before = simulation_map
     nothing
