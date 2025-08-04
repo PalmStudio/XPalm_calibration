@@ -289,10 +289,10 @@ df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
 #df_simulations = vcat([DataFrame(i) for i in values(simulations)]...)
 # df_simulations = vcat([DataFrame([i[j] for j in 1:length(i) if isassigned(i, j)]) for i in values(simulations)]...)
 
-#CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
+CSV.write("2-results/sensitivity/simulations_on_doe.csv", df_simulations)
 #CSV.write("2-results/sensitivity/simulations_on_doe_presco_2.csv", df_simulations) #change the wind missing to 2
 #CSV.write("2-results/sensitivity/simulations_on_doe_presco_3.csv", df_simulations) #change the rainfall first period to the normal value after in the same month
-CSV.write("2-results/sensitivity/simulations_on_doe_presco_4.csv", df_simulations) #change the all climate first period to the normal value after in the same month
+#CSV.write("2-results/sensitivity/simulations_on_doe_presco_4.csv", df_simulations) #change the all climate first period to the normal value after in the same month
 
 # ~10s per row of doe, with 3 sites per row coming to 15000 days simulated in total, gives 
 # 705.73 μs per day, or 0.257 s per year.

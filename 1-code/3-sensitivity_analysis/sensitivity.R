@@ -1,3 +1,6 @@
+# this code is used to plot the sensitivity analysis of morris method's results with the heatmap of most sensitive parameters for each variables among sites#
+
+# please run first the 2-simulation.jl
 packs <- c("sensitivity", "lhs", "ggplot2", "dplyr", "ggrepel", "plotly", "data.table", "stringr")
 InstIfNec <- function(pack) {
     if (!do.call(require, as.list(pack))) {
@@ -9,12 +12,12 @@ lapply(packs, InstIfNec)
 
 # Read input data
 # res1_all <- fread("2-results/sensitivity/simulations_on_doe.csv")
-res1_all <- fread("2-results/sensitivity/simulations_on_doe_presco_4.csv")
+res1_all <- fread("2-results/sensitivity/simulations_on_doe.csv") # run 1-code/3-sensitivity_analysis/2-simulation.jl
 SITE <- c("smse", "towe", "presco")
 var <- colnames(res1_all)[-1] # assuming 'doe' is the first column
 
 # Load Morris design and parameter definitions
-load("2-results/sensitivity/etude_morris.RData")
+load("2-results/sensitivity/etude_morris.RData") # run 1-code/3-sensitivity_analysis/1-design_of_experiment.R
 df_raw_params <- read.csv("2-results/xpalm_parameters.csv", sep = ";") %>%
     filter(sensitivity != "false") %>%
     filter(!is.na(as.numeric(low_boundary)), !is.na(as.numeric(high_boundary)))
@@ -98,10 +101,10 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
-        name = "mu_star"
+        name = expression(mu[rel])
     ) +
     labs(
-        x = "Average leaf area (m²)",
+        x = "Average leaf area",
         y = "Parameter",
         title = "Most sensitive parameters among sites"
     ) +
@@ -117,7 +120,7 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
 # Save the fixed
 ggsave(
     # filename = "2-results/sensitivity/heatmap_average_leaf_area_edit_presco.png",
-    filename = "2-results/sensitivity/heatmap_average_leaf_area.png",
+    filename = "2-results/sensitivity//heatmap/heatmap_average_leaf_area.png",
     plot = map_all,
     bg = "white",
     width = 12,
