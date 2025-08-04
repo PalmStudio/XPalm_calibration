@@ -21,6 +21,8 @@ include("evaluation/generic_plot.jl")
 include("evaluation/phyllochron.jl")
 include("evaluation/bunch_number.jl")
 include("evaluation/biomass_dry_fruit_per_bunch.jl")
+include("evaluation/leaf_area.jl")
+include("evaluation/FFB.jl")
 
 include("evaluation/evaluation.jl")
 
