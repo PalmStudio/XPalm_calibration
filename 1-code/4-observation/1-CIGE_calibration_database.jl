@@ -94,7 +94,8 @@ select!(
         [:UnfertilFruitsFreshWeight, :FertilFruitsFreshWeight] => ByRow((uf, f) -> any(ismissing.([uf, f])) ? missing : uf + f) => :biomass_fresh_fruit,
         [:UnfertilFruitsDryWeight, :FertilFruitsFreshWeight, :ThirtyNutsWC] => ByRow((uf_dry, f_wet, wc) -> any(ismissing.([uf_dry, f_wet, wc])) ? missing : uf_dry + (f_wet * (1.0 - wc))) => :biomass_dry_fruit,
         [:peduncleDryWeight, :SpikeletsDryWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_dry_biomass,
-        [:peduncleFreshWeight, :SpikeletsFreshWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_fresh_biomass
+        [:peduncleFreshWeight, :SpikeletsFreshWeight] => ((p, s) -> ifelse.(ismissing.(p) .| ismissing.(s), missing, p .+ s)) => :stalk_fresh_biomass,
+        [:peduncleFreshWeight, :peduncleWC, :SpikeletsFreshWeight, :SpikeletsWC] => ByRow((pfw, pwc, sfw, swc) -> any(ismissing.([pfw, pwc, sfw, swc])) ? missing : (pfw .* pwc .+ sfw .* swc) ./ (pfw .+ sfw)) => :stalk_water_content
 )
 # We have missing measurements at MAP 47 in SMSE for some variables (BunchMass, UnfertilFruitsDryWeight...).
 
@@ -124,7 +125,8 @@ df_production_MAP = combine(
         :stalk_dry_biomass => (x -> fn_no_missings(x, mean)) => :stalk_dry_biomass_per_bunch,
         :stalk_fresh_biomass => (x -> fn_no_missings(x, mean)) => :stalk_fresh_biomass_per_bunch,
         # :bunch_fresh_mass => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch,
-        [:stalk_dry_biomass, :biomass_dry_fruit, :BunchMass] => ((stalk_dry, fruits_dry, bunch_wet) -> fn_no_missings(1 .- ((stalk_dry .+ fruits_dry) ./ bunch_wet), mean)) => :bunch_water_content
+        [:stalk_dry_biomass, :biomass_dry_fruit, :BunchMass] => ((stalk_dry, fruits_dry, bunch_wet) -> fn_no_missings(1 .- ((stalk_dry .+ fruits_dry) ./ bunch_wet), mean)) => :bunch_water_content,
+        :stalk_water_content => (x -> fn_no_missings(x, mean)) => :avg_stalk_water_content,
         # [:stalk_dry_biomass, :biomass_dry_fruit, :BunchMass] => ((stalk_dry, fruits_dry, bunch_wet) -> (1 .- ((stalk_dry .+ fruits_dry) ./ bunch_wet), mean)) => :bunch_water_content
 )
 
@@ -132,6 +134,7 @@ transform!(df_production_MAP, :bunch_water_content => ByRow(x -> ismissing(x) ? 
 
 # Average water content of the bunches per site:
 combine(groupby(df_production_MAP, :Site), :bunch_water_content => (x -> mean(skipmissing(x))) => :avg_bunch_water_content)
+combine(groupby(df_production_MAP, :Site), :avg_stalk_water_content => (x -> mean(skipmissing(x))) => :avg_stalk_water_content)
 # 3×2 DataFrame
 #  Row │ Site     avg_bunch_water_content 
 #      │ String7  Float64                 
@@ -140,6 +143,16 @@ combine(groupby(df_production_MAP, :Site), :bunch_water_content => (x -> mean(sk
 #    2 │ SMSE                    0.41636
 #    3 │ TOWE                    0.380513
 # Total average is 38.5% water content in average -> mean(skipmissing(df_production_MAP.bunch_water_content))
+
+#stalk water content seems higher than the bunch water content 
+# 3×2 DataFrame
+#  Row │ Site     avg_stalk_water_content 
+#      │ String7  Float64
+# ─────┼──────────────────────────────────
+#    1 │ PR                      0.669631
+#    2 │ SMSE                    0.68825
+#    3 │ TOWE                    0.644259
+#Total average stalk water content is 66.74%, mean(skipmissing(df_production.stalk_water_content))
 
 # Plotting the total fresh fruit biomass + stalk fresh biomass against the bunch mass (should be the same approximately):
 # df_test = DataFrame(ffb=df_production.biomass_fresh_fruit .+ df_production.stalk_fresh_biomass, BunchMass=df_production.BunchMass)
