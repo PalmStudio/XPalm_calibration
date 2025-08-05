@@ -7,7 +7,9 @@
 
 CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
 water_content_mesocarp = 0.25  # Water content of the mesocarp
-dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
+water_content_stalk = 0.667 #water content of the stalk (peduncle + spikelets)
+bunch_dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
+stalk_dry_to_fresh_ratio = 1 / (1 - water_content_stalk)
 
 function integrate_simulation_by_map(simulations)
     # Plant scale
@@ -26,7 +28,7 @@ function integrate_simulation_by_map(simulations)
         :phytomer_count => (x -> x[end] - x[1]) => :diff_phytomer_emmitted, #the difference phytomer emitted between MAP
     )
     #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
-    dfs_plant_MAP[!, :bunch_fresh_biomass] = (dfs_plant_MAP.biomass_bunch_harvested_MAP .* 1e-3 ./ CC_Fruit) .* dry_to_fresh_ratio #!FFB
+    dfs_plant_MAP[!, :bunch_fresh_biomass] = (dfs_plant_MAP.biomass_bunch_harvested_MAP .* 1e-3 ./ CC_Fruit) .* bunch_dry_to_fresh_ratio #!FFB
 
     # Compute cumulated_n_leaf_emitted based on the first observation MAP of CIGE each site
     dfs_plant_MAP[!, :cumulated_n_leaf_emitted] = Vector{Union{Missing,Int64}}(missing, nrow(dfs_plant_MAP))
@@ -67,11 +69,14 @@ function integrate_simulation_by_map(simulations)
         :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_mass_per_bunch, #average individual bunch biomass in one MAP in kg
         :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
         :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_dry_fruit_per_bunch, #change to kg and total it (?)
-        :fruits_number_harvested => mean => :avg_n_fruit_per_bunch,
+        :fruits_number_harvested => (x -> mean(filter(x -> x > 0.0, x))) => :avg_n_fruit_per_bunch,
+        :fruits_number_harvested => (x -> sum(filter(x -> x > 0.0, x))) => :total_n_fruit_harvested,
+        :biomass_stalk_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :stalk_dry_biomass_per_bunch,
     )
 
     #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
-    dfs_female_MAP[!, :bunch_fresh_mass_per_bunch] = (dfs_female_MAP.bunch_dry_mass_per_bunch ./ CC_Fruit) .* dry_to_fresh_ratio #!FFB
+    dfs_female_MAP[!, :bunch_fresh_mass_per_bunch] = (dfs_female_MAP.bunch_dry_mass_per_bunch ./ CC_Fruit) .* bunch_dry_to_fresh_ratio #!FFB
+    dfs_female_MAP[!, :stalk_fresh_biomass_per_bunch] = (dfs_female_MAP.stalk_dry_biomass_per_bunch ./ CC_Fruit) .* stalk_dry_to_fresh_ratio #!this wrong, should check the water content on stalk
 
     return (plant=dfs_plant_MAP, leaf=dfs_leaf_MAP, female=dfs_female_MAP)
 end

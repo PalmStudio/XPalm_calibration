@@ -16,13 +16,23 @@ include("meteo/import_meteo_cige.jl")
 
 # Evaluation
 include("rename_variables.jl")
+include("evaluation/start_MAP.jl")
 include("evaluation/generic_plot.jl")
 
-include("evaluation/phyllochron.jl")
-include("evaluation/bunch_number.jl")
-include("evaluation/biomass_dry_fruit_per_bunch.jl")
-include("evaluation/leaf_area.jl")
-include("evaluation/FFB.jl")
+include("evaluation/1-phyllochron.jl")
+include("evaluation/2-bunch_number.jl")
+include("evaluation/3-biomass_dry_fruit_per_bunch.jl")
+include("evaluation/4-leaf_area.jl")
+include("evaluation/5-FFB.jl")
+include("evaluation/6-avg_n_fruit_per_bunch.jl")
+include("evaluation/7-biomass_fresh_fruit_per_bunch.jl")
+include("evaluation/8-bunch_dry_biomass.jl")
+include("evaluation/9-bunch_dry_mass_per_bunch.jl")
+include("evaluation/10-total_n_fruit_harvested.jl")
+include("evaluation/11-bunch_fresh_mass_per_bunch.jl")
+include("evaluation/12-stalk_dry_biomass_per_bunch.jl")
+include("evaluation/13-stalk_fresh_biomass_per_bunch.jl")
+
 
 include("evaluation/evaluation.jl")
 
