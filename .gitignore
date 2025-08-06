@@ -29,3 +29,5 @@ docs/site/
 
 **/*.csv
 **/*.png
+
+**/.DS_Store

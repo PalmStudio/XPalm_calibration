@@ -2,23 +2,12 @@
 using CSV, DataFrames, Dates
 using Statistics
 using AlgebraOfGraphics, CairoMakie
-using XPalm
 using YAML
-using PlantMeteo
+using XPalmCalibration
 
-include(joinpath(@__DIR__, "../XPalmCalibration/XPalmCalibration.jl"))
-using .XPalmCalibration
-
-# Importing CIGE data
+# Importing CIGE data.
+#! Please run the following script before running this one: 1-code/4-observation/1-CIGE_calibration_database.jl
 df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
-
-function fn_no_missings(values, fn)
-    if all(ismissing.(values))
-        return missing
-    else
-        return fn(skipmissing(values))
-    end
-end
 
 df_CIGE_species = combine( #here is we dont consider about the genotype thats why mostly we use the mean from all treeId to get the value of each tree
     groupby(df_CIGE, [:Site, :MAP]),
@@ -52,8 +41,6 @@ out_vars = Dict{String,Any}(
     "Female" => (:biomass_bunch_harvested, :biomass_fruit_harvested, :fruits_number_harvested, :biomass_stalk_harvested,),
 )
 
-simulation_before = nothing
-
 # #compute the dry fruit mass (per plant)
 # CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
 # water_content_mesocarp = 0.25  # Water content of the mesocarp
@@ -62,68 +49,34 @@ simulation_before = nothing
 # transform!(groupby(simulation_map.plant, [:Site, :MAP]), #!need to check
 #     :biomass_fruit_harvested_MAP => ByRow(x -> ismissing(x) ? missing : x * 1e-3 / CC_Fruit) => :fruit_dry_biomass) #!3 fruit dry mass from all bunches (plat -1 -MAP -1)
 
-
-begin
-    params_default = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
-    # Choosing the output variables to be saved:
-    simulations = run_simulations_all_cige_sites(params_default, out_vars, meteos)
-    simulation_map = integrate_simulation_by_map(simulations)
-
-    name_previous = "previous"
-    name_current = "current"
-    if isnothing(simulation_before)
-        simulation_before = simulation_map
-    end
-
-    df_plant = innerjoin(simulation_map.plant, simulation_before.plant, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
-    df_plant = innerjoin(df_plant, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
-
-    df_female = innerjoin(simulation_map.female, simulation_before.female, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
-    df_female = innerjoin(df_female, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
-
-    df_leaf = innerjoin(simulation_map.leaf, simulation_before.leaf, on=[:Site, :MAP], makeunique=true, renamecols="_sim_" * name_current => "_sim_" * name_previous)
-    df_leaf = innerjoin(df_leaf, df_CIGE_species, on=[:Site, :MAP], makeunique=true, renamecols="" => "_obs")
+parameters = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
+df_comparison = run_simulation_all_cige_by_map(df_CIGE_species, parameters, meteos, out_vars)
+# Evaluate the simulation against CIGE data
+evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
 
 
-    evaluate(df_plant, df_female, df_leaf, "2-results/calibration/XPalm")
-    # XPalmCalibration.evaluate_phyllochron(df_plant) #plot leaf emitted
-    simulation_before = simulation_map
-    nothing
-end
+# Compare simulations with different parameter values:
+params_defaults = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
+params_defaults = Dict{AbstractString,Any}(string(k) => v for (k, v) in params_defaults)
+param_changed = deepcopy(params_defaults)
+param_changed["reproduction"]["sex_ratio"]["sex_ratio_min"] = 0.6
+param_changed["reproduction"]["sex_ratio"]["sex_ratio_ref"] = 0.7
+param_changed["reproduction"]["yield_formation"]["potential_fruit_number_at_maturity"] = 1000
 
-# ALl results are saved in the "2-results/calibration/XPalm" directory.
+df_comparison = run_simulation_all_cige_by_map(df_CIGE_species, [params_defaults, param_changed], meteos, out_vars)
+# Evaluate the simulation against CIGE data
+evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
 
 
 
+# Compare simulations with a reference simulation:
+reference_parameters = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
+reference_simulation = XPalmCalibration.run_simulations_all_cige_sites(reference_parameters, out_vars, meteos) |> XPalmCalibration.integrate_simulation_by_map
+param_changed = deepcopy(reference_parameters)
+param_changed["reproduction"]["sex_ratio"]["sex_ratio_min"] = 0.5
+param_changed2 = deepcopy(reference_parameters)
+param_changed2["reproduction"]["sex_ratio"]["sex_ratio_min"] = 0.4
 
-
-
-#! still need to integrate the plots below in the XPalmCalibration module for making them each time we call `evaluate`
-dfs_plant_MAP = simulation_map.plant
-dfs_leaf_MAP = simulation_map.leaf
-dfs_female = simulation_map.female
-
-
-#biomass dry fruit in the plant scale #!to recheck with the latest version of xpalm
-df_fruit_dry_long = stack(df_plant, [:total_biomass_dry_fruit_sim, :total_biomass_dry_fruit_obs], variable_name=:type, value_name=:biomass_dry_fruit)
-p_fruit_dry = data(df_fruit_dry_long) * mapping(:MAP, :biomass_dry_fruit, row=:Site, color=:type) * visual(Lines)
-fig_fruit_dry = draw(p_fruit_dry; axis=(; xlabel="Month after planting", ylabel="Total biomass dry fruit (kg plant-1 MAP-1)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
-save("2-results/calibration/XPalm/4.Total biomass dry fruit (kg plant-1 MAP-1).png", fig_fruit_dry)
-
-
-#!Female scale simulation
-#average 1 bunch biomass all time (kg) #!good
-df_female_site = combine(groupby(dfs_female_MAP, [:Site]),
-    :bunch_fresh_biomass => (x -> mean(filter(x -> x > 0.0, x))) => :avg_bunch_fresh_biomass) #average individual bunch biomass each sites
-
-df_avg_bunch = innerjoin(df_female_site, df_CIGE_site, on=[:Site], makeunique=true, renamecols="_sim" => "_obs")
-df_avg_bunch_long = stack(df_avg_bunch, [:avg_bunch_fresh_biomass_sim, :avg_bunch_fresh_biomass_obs], variable_name=:type, value_name=:avg_biomass_bunch)
-replace!(df_avg_bunch_long.type,
-    "avg_bunch_fresh_biomass_obs" => "Observation",
-    "avg_bunch_fresh_biomass_sim" => "Simulation"
-)
-p_avg_bunch_mass = data(df_avg_bunch_long) * mapping(:type, :avg_biomass_bunch, color=:type, col=:Site) * visual(BarPlot)
-fig_avg_bunch_mass = draw(p_avg_bunch; axis=(; ylabel="Average 1 bunch biomass per site (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom))
-save("2-results/calibration/XPalm/3.avg_bunch_mass_site.png", fig_avg_bunch_mass)
-
-
+df_comparison = run_simulation_all_cige_by_map(reference_simulation, df_CIGE_species, [param_changed, param_changed2], meteos, out_vars; suffix=["sex_ratio_min: 0.5", "sex_ratio_min: 0.4"])
+# Evaluate the simulation against CIGE data
+evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")

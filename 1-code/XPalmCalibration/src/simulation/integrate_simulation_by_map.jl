@@ -1,17 +1,24 @@
 
 """
-    integrate_simulation_by_map(parameters, out_vars, meteos)
+    integrate_simulation_by_map(
+        simulations;
+        CC_Fruit=0.4857,     # Fruit carbon content (gC g-1 dry mass)
+        water_content_mesocarp=0.25,  # Water content of the mesocarp
+        water_content_stalk=0.667, #water content of the stalk (peduncle + spikelets)
+        bunch_dry_to_fresh_ratio=1 / (1 - water_content_mesocarp),  # Based on the mesocarp water content of 0.3
+        stalk_dry_to_fresh_ratio=1 / (1 - water_content_stalk),
+    )
 
-
+Integrates simulation results by MAP (Months After Planting) for comparing with the data.
 """
-
-CC_Fruit = 0.4857     # Fruit carbon content (gC g-1 dry mass)
-water_content_mesocarp = 0.25  # Water content of the mesocarp
-water_content_stalk = 0.667 #water content of the stalk (peduncle + spikelets)
-bunch_dry_to_fresh_ratio = 1 / (1 - water_content_mesocarp)  # Based on the mesocarp water content of 0.3
-stalk_dry_to_fresh_ratio = 1 / (1 - water_content_stalk)
-
-function integrate_simulation_by_map(simulations)
+function integrate_simulation_by_map(
+    simulations;
+    CC_Fruit=0.4857,     # Fruit carbon content (gC g-1 dry mass)
+    water_content_mesocarp=0.25,  # Water content of the mesocarp
+    water_content_stalk=0.667, #water content of the stalk (peduncle + spikelets)
+    bunch_dry_to_fresh_ratio=1 / (1 - water_content_mesocarp),  # Based on the mesocarp water content of 0.3
+    stalk_dry_to_fresh_ratio=1 / (1 - water_content_stalk),
+)
     # Plant scale
     dfs_plant = vcat([s["Plant"] for s in simulations]...)
     sort!(dfs_plant, [:Site, :timestep])
@@ -78,5 +85,5 @@ function integrate_simulation_by_map(simulations)
     dfs_female_MAP[!, :bunch_fresh_mass_per_bunch] = (dfs_female_MAP.bunch_dry_mass_per_bunch ./ CC_Fruit) .* bunch_dry_to_fresh_ratio #!FFB
     dfs_female_MAP[!, :stalk_fresh_biomass_per_bunch] = (dfs_female_MAP.stalk_dry_biomass_per_bunch ./ CC_Fruit) .* stalk_dry_to_fresh_ratio #!this wrong, should check the water content on stalk
 
-    return (plant=dfs_plant_MAP, leaf=dfs_leaf_MAP, female=dfs_female_MAP)
+    return Dict("plant" => dfs_plant_MAP, "leaf" => dfs_leaf_MAP, "female" => dfs_female_MAP)
 end

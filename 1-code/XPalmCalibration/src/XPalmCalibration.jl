@@ -9,9 +9,13 @@ using PlantMeteo
 using AlgebraOfGraphics, CairoMakie
 
 
+# Helper functions
+include("fn_no_missings.jl")
+
 
 include("simulation/run_simulations_all_sites.jl")
 include("simulation/integrate_simulation_by_map.jl")
+include("simulation/compare_simulations.jl")
 include("meteo/import_meteo_cige.jl")
 
 # Evaluation
@@ -36,7 +40,8 @@ include("evaluation/13-stalk_fresh_biomass_per_bunch.jl")
 
 include("evaluation/evaluation.jl")
 
-export run_simulations_all_cige_sites
+export fn_no_missings
+export run_simulations_all_cige_sites, run_simulation_all_cige_by_map
 export integrate_simulation_by_map
 export import_meteo_cige
 export evaluate
