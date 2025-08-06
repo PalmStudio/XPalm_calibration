@@ -12,7 +12,6 @@ using AlgebraOfGraphics, CairoMakie
 # Helper functions
 include("fn_no_missings.jl")
 
-
 include("simulation/run_simulations_all_sites.jl")
 include("simulation/integrate_simulation_by_map.jl")
 include("simulation/compare_simulations.jl")
@@ -22,6 +21,7 @@ include("meteo/import_meteo_cige.jl")
 include("rename_variables.jl")
 include("evaluation/start_MAP.jl")
 include("evaluation/generic_plot.jl")
+include("evaluation/statistics.jl")
 
 include("evaluation/1-phyllochron.jl")
 include("evaluation/2-bunch_number.jl")
