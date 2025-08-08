@@ -77,7 +77,6 @@ function integrate_simulation_by_map(
         :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
         :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_dry_fruit_per_bunch, #change to kg and total it (?)
         :fruits_number_harvested => (x -> mean(filter(x -> x > 0.0, x))) => :avg_n_fruit_per_bunch,
-        :fruits_number_harvested => (x -> sum(filter(x -> x > 0.0, x))) => :total_n_fruit_harvested,
         :biomass_stalk_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :stalk_dry_biomass_per_bunch,
     )
 
