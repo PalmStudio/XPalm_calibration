@@ -75,11 +75,11 @@ function integrate_simulation_by_map(
     dfs_female = vcat([s["Female"] for s in simulations]...)
     dfs_female_MAP = combine(
         groupby(dfs_female, [:Site, :MAP]),
-        :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_mass_per_bunch, #average individual bunch biomass in one MAP in kg
-        :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
-        :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :fruit_dry_mass_per_bunch, #change to kg and total it (?)
-        :fruits_number_harvested => (x -> mean(filter(x -> x > 0.0, x))) => :avg_n_fruit_per_bunch,
-        :biomass_stalk_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :stalk_dry_biomass_per_bunch,
+        :biomass_bunch_harvested => (x -> isempty(filter(y -> y > 0.0, skipmissing(x))) ? missing : mean(filter(y -> y > 0.0, skipmissing(x))) * 1e-3) => :bunch_dry_mass_per_bunch,
+        :biomass_bunch_harvested => (x -> isempty(filter(y -> y > 0.0, skipmissing(x))) ? missing : sum(filter(y -> y > 0.0, skipmissing(x))) * 1e-3) => :bunch_dry_biomass,
+        :biomass_fruit_harvested => (x -> isempty(filter(y -> y > 0.0, skipmissing(x))) ? missing : mean(filter(y -> y > 0.0, skipmissing(x))) * 1e-3) => :fruit_dry_mass_per_bunch,
+        :fruits_number_harvested => (x -> isempty(filter(y -> y > 0.0, skipmissing(x))) ? missing : mean(filter(y -> y > 0.0, skipmissing(x)))) => :avg_n_fruit_per_bunch,
+        :biomass_stalk_harvested => (x -> isempty(filter(y -> y > 0.0, skipmissing(x))) ? missing : mean(filter(y -> y > 0.0, skipmissing(x))) * 1e-3) => :stalk_dry_biomass_per_bunch,
     )
 
     #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
