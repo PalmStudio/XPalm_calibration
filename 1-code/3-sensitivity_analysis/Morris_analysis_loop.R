@@ -70,7 +70,7 @@ for (variables in vars_list) {
       data = data_plot %>% filter(mu_star > 0.0)
     ) +
     facet_grid(. ~ Site) +
-    labs(x = "mu_star", y = "sd", title = paste("Sensitivity Analysis Results for", variables)) +
+    labs(x = " µ ", y = " σ ", title = paste("Sensitivity Analysis Results for", variables)) +
     theme(legend.position = "bottom")
 
   ggsave(
@@ -83,22 +83,22 @@ for (variables in vars_list) {
   )
 }
 
-# extract the column the first highest sd for each site and variable
-sensitive_parameters <- all_res %>%
-  group_by(Site, var) %>%
-  slice_max(order_by = mu_star, n = 5, with_ties = FALSE) %>%
-  ungroup() %>%
-  arrange(var, Site, desc(mu_star)) %>% # this arranges nicely
-  select(var, params, Site, category)
-write.csv(sensitive_parameters, "2-results/sensitivity/sensitive_parameters_mu_star.csv", row.names = FALSE)
+# # extract the column the first highest sd for each site and variable
+# sensitive_parameters <- all_res %>%
+#   group_by(Site, var) %>%
+#   slice_max(order_by = mu_star, n = 5, with_ties = FALSE) %>%
+#   ungroup() %>%
+#   arrange(var, Site, desc(mu_star)) %>% # this arranges nicely
+#   select(var, params, Site, category)
+# write.csv(sensitive_parameters, "2-results/sensitivity/sensitive_parameters_mu_star.csv", row.names = FALSE)
 
-# list fix list of sensitive parameters from params list among al sites, but delete if it is repeated
-fix_sensitive_params <- sensitive_parameters %>%
-  group_by(var) %>%
-  select(params, category) %>%
-  distinct() %>%
-  arrange(var)
-write.csv(fix_sensitive_params, "2-results/sensitivity/fix_sensitive_params_mu_star.csv", row.names = FALSE)
+# # list fix list of sensitive parameters from params list among al sites, but delete if it is repeated
+# fix_sensitive_params <- sensitive_parameters %>%
+#   group_by(var) %>%
+#   select(params, category) %>%
+#   distinct() %>%
+#   arrange(var)
+# write.csv(fix_sensitive_params, "2-results/sensitivity/fix_sensitive_params_mu_star.csv", row.names = FALSE)
 
 
 
