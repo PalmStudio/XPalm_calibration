@@ -120,8 +120,8 @@ df_production_MAP = combine(
         :n_of_fruit => sum => :n_of_fruit_total,
         :n_of_fruit => (x -> fn_no_missings(x, mean)) => :n_of_fruit_average,
         # Note on the following variables: we cannot use the sum because only one bunch out of many (from different trees of the same genotype) was dissected per observation date:
-        :biomass_fresh_fruit => (x -> fn_no_missings(x, mean)) => :biomass_fresh_fruit_per_bunch, #! Fresh mesocarp biomass per bunch.
-        :biomass_dry_fruit => (x -> fn_no_missings(x, mean)) => :biomass_dry_fruit_per_bunch,
+        :biomass_fresh_fruit => (x -> fn_no_missings(x, mean)) => :fruit_fresh_mass_per_bunch, #! Fresh mesocarp biomass per bunch.
+        :biomass_dry_fruit => (x -> fn_no_missings(x, mean)) => :fruit_dry_mass_per_bunch,
         :stalk_dry_biomass => (x -> fn_no_missings(x, mean)) => :stalk_dry_biomass_per_bunch,
         :stalk_fresh_biomass => (x -> fn_no_missings(x, mean)) => :stalk_fresh_biomass_per_bunch,
         # :bunch_fresh_mass => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch,
@@ -131,10 +131,14 @@ df_production_MAP = combine(
 )
 
 transform!(df_production_MAP, :bunch_water_content => ByRow(x -> ismissing(x) ? missing : (x < 0.0 ? 0.0 : x)) => :bunch_water_content) #! to avoid negative values (see graph below)
+transform!(df_production_MAP, [:fruit_dry_mass_per_bunch, :fruit_fresh_mass_per_bunch] => ByRow((fd, ff) -> any(ismissing.([fd, ff])) ? missing : ((ff - fd) / ff)) => :fruit_water_content) #see the fruit water content
+
+
 
 # Average water content of the bunches per site:
 combine(groupby(df_production_MAP, :Site), :bunch_water_content => (x -> mean(skipmissing(x))) => :avg_bunch_water_content)
 combine(groupby(df_production_MAP, :Site), :avg_stalk_water_content => (x -> mean(skipmissing(x))) => :avg_stalk_water_content)
+combine(groupby(df_production_MAP, :Site), :fruit_water_content => (x -> mean(skipmissing(x))) => :avg_fruit_water_content)
 # 3×2 DataFrame
 #  Row │ Site     avg_bunch_water_content 
 #      │ String7  Float64                 
@@ -153,6 +157,17 @@ combine(groupby(df_production_MAP, :Site), :avg_stalk_water_content => (x -> mea
 #    2 │ SMSE                    0.68825
 #    3 │ TOWE                    0.644259
 #Total average stalk water content is 66.74%, mean(skipmissing(df_production.stalk_water_content))
+
+
+#fruit water content 
+# 3×2 DataFrame
+#  Row │ Site     avg_fruit_water_content 
+#      │ String7  Float64
+# ─────┼──────────────────────────────────
+#    1 │ PR                      0.198066
+#    2 │ SMSE                    0.270421
+#    3 │ TOWE                    0.23682
+#total average of fruit water content is 23.58% , mean(skipmissing(df_production_MAP.fruit_water_content))
 
 # Plotting the total fresh fruit biomass + stalk fresh biomass against the bunch mass (should be the same approximately):
 # df_test = DataFrame(ffb=df_production.biomass_fresh_fruit .+ df_production.stalk_fresh_biomass, BunchMass=df_production.BunchMass)
