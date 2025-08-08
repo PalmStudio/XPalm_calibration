@@ -80,7 +80,7 @@ function evaluate(df_plant, df_female, df_leaf, path_outputs)
         Leaf_area_17=(; dynamic=fig_leaf_area_17_dynamic, scatter=fig_leaf_area_17_scatter, statistics=statistics_leaf_area_17),
         bunch_dry_biomass=(; dynamic=fig_bunch_dry_biomass_dynamic, scatter=fig_bunch_dry_biomass_scatter, statistics=statistics_bunch_dry_biomass),
         avg_n_fruit_per_bunch_dynamic=(; dynamic=fig_avg_n_fruit_per_bunch_dynamic, scatter=fig_avg_n_fruit_per_bunch_scatter, statistics=statistics_avg_n_fruit_per_bunch),
-        fruit_dry_mass_per_bunch_dynamic=(; dynamic=fig_fruit_dry_mass_per_bunch_dynamic, scatter=fig_fruit_dry_mass_per_bunch_scatter, statistics_fruit_dry_mass_per_bunch_dynamic),
+        fruit_dry_mass_per_bunch_dynamic=(; dynamic=fig_fruit_dry_mass_per_bunch_dynamic, scatter=fig_fruit_dry_mass_per_bunch_scatter, statistics=statistics_fruit_dry_mass_per_bunch),
         fruit_fresh_mass_per_bunch_dynamic=(; dynamic=fig_fruit_fresh_mass_per_bunch_dynamic, scatter=fig_fruit_fresh_mass_per_bunch_scatter, statistics=statistics_fruit_fresh_mass_per_bunch),
         bunch_dry_mass_per_bunch_dynamic=(; dynamic=fig_bunch_dry_mass_per_bunch_dynamic, scatter=fig_bunch_dry_mass_per_bunch_scatter, statistics=statistics_bunch_dry_mass_per_bunch),
         bunch_fresh_mass_per_bunch_dynamic=(; dynamic=fig_bunch_fresh_mass_per_bunch_dynamic, scatter=fig_bunch_fresh_mass_per_bunch_scatter, statistics=statistics_bunch_fresh_mass_per_bunch),
