@@ -16,8 +16,10 @@ function integrate_simulation_by_map(
     CC_Fruit=0.4857,     # Fruit carbon content (gC g-1 dry mass)
     water_content_mesocarp=0.25,  # Water content of the mesocarp
     water_content_stalk=0.667, #water content of the stalk (peduncle + spikelets)
+    water_content_fruit=0.2358, #water content of the fruit (from the (dry fruit + fresh fruit) / fresh fruit)
     bunch_dry_to_fresh_ratio=1 / (1 - water_content_mesocarp),  # Based on the mesocarp water content of 0.3
     stalk_dry_to_fresh_ratio=1 / (1 - water_content_stalk),
+    fruit_dry_to_fresh_ratio=1 / (1 - water_content_fruit),
 )
     # Plant scale
     dfs_plant = vcat([s["Plant"] for s in simulations]...)
@@ -75,7 +77,7 @@ function integrate_simulation_by_map(
         groupby(dfs_female, [:Site, :MAP]),
         :biomass_bunch_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_mass_per_bunch, #average individual bunch biomass in one MAP in kg
         :biomass_bunch_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :bunch_dry_biomass, #change to kg and total it (?)
-        :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_dry_fruit_per_bunch, #change to kg and total it (?)
+        :biomass_fruit_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :fruit_dry_mass_per_bunch, #change to kg and total it (?)
         :fruits_number_harvested => (x -> mean(filter(x -> x > 0.0, x))) => :avg_n_fruit_per_bunch,
         :biomass_stalk_harvested => (x -> mean(filter(x -> x > 0.0, x)) * 1e-3) => :stalk_dry_biomass_per_bunch,
     )
@@ -83,6 +85,6 @@ function integrate_simulation_by_map(
     #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
     dfs_female_MAP[!, :bunch_fresh_mass_per_bunch] = (dfs_female_MAP.bunch_dry_mass_per_bunch ./ CC_Fruit) .* bunch_dry_to_fresh_ratio #!FFB
     dfs_female_MAP[!, :stalk_fresh_biomass_per_bunch] = (dfs_female_MAP.stalk_dry_biomass_per_bunch ./ CC_Fruit) .* stalk_dry_to_fresh_ratio #!this wrong, should check the water content on stalk
-
+    dfs_female_MAP[!, :fruit_fresh_mass_per_bunch] = (dfs_female_MAP.fruit_dry_mass_per_bunch ./ CC_fruit) .* fruit_dry_to_fresh_ratio #!make fruit_dry_to_fresh_ratio
     return Dict("plant" => dfs_plant_MAP, "leaf" => dfs_leaf_MAP, "female" => dfs_female_MAP)
 end
