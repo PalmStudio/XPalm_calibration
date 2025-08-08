@@ -17,8 +17,8 @@ df_CIGE_species = combine( #here is we dont consider about the genotype thats wh
     :bunch_fresh_mass_average => (x -> fn_no_missings(x, mean)) => :bunch_fresh_mass_per_bunch, # in kg
     :bunch_dry_mass_total => (x -> fn_no_missings(x, mean)) => :bunch_dry_biomass, # in kg,
     :bunch_dry_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :bunch_dry_mass_per_bunch, # in kg #! done
-    :biomass_fresh_fruit_per_bunch => (x -> fn_no_missings(x, mean)) => :biomass_fresh_fruit_per_bunch, #average in kg
-    :biomass_dry_fruit_per_bunch => (x -> fn_no_missings(x, mean)) => :biomass_dry_fruit_per_bunch, #average in kg
+    :fruit_fresh_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :fruit_fresh_mass_per_bunch, #average in kg
+    :fruit_dry_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :fruit_dry_mass_per_bunch, #average in kg
     :n_of_bunch => (x -> fn_no_missings(x, median)) => :total_n_bunches_harvested,
     :n_of_fruit_total => (x -> fn_no_missings(x, median)) => :total_n_fruit_harvested,
     :n_of_fruit_average => (x -> fn_no_missings(x, mean)) => :avg_n_fruit_per_bunch,
