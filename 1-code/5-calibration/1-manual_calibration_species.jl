@@ -57,6 +57,73 @@ out_eval = evaluate(df_comparison["plant"], df_comparison["female"], df_comparis
 
 out_eval.ffb.statistics
 
+#? Map dynamic plot into one figure
+const variable_labels = Dict(
+    "bunch_fresh_biomass" => "Bunch fresh biomass (kg plant⁻¹)",
+    "cumulated_n_leaf_emitted" => "Cumulative number of leaves emitted (plant⁻¹)",
+    "bunch_dry_biomass" => "Bunch dry biomass (kg plant⁻¹)",
+    "total_n_bunches_harvested" => "Total number of bunches harvested (plant⁻¹)",
+    "Leaf_area_17" => "Leaf area 17 (m² plant⁻¹)",
+    "avg_n_fruit_per_bunch" => "Average number of fruits (bunch⁻¹)",
+    "fruit_dry_mass_per_bunch" => "Fruit dry mass (kg bunch⁻¹)",
+    "fruit_fresh_mass_per_bunch" => "Fruit fresh mass (kg bunch⁻¹)",
+    "bunch_dry_mass_per_bunch" => "Bunch dry mass (kg bunch⁻¹)",
+    "bunch_fresh_mass_per_bunch" => "Bunch fresh mass (kg bunch⁻¹)",
+    "stalk_dry_biomass_per_bunch" => "Stalk dry biomass (kg bunch⁻¹)",
+    "stalk_fresh_biomass_per_bunch" => "Stalk fresh biomass (kg bunch⁻¹)",
+)
+
+function dynamic_layer(df, variable_name; xlabel="Month after planting")
+    ylabel = get(variable_labels, variable_name, variable_name)  # fallback to variable_name if not found
+    df = XPalmCalibration.rename_variables_names(df, variable_name)
+    df_long = stack(df, Not(:MAP, :Site), variable_name=:type, value_name=:value)
+    filter!(row -> row.type != "observed" || !ismissing(row.value), df_long)
+    p = data(df_long) * mapping(:MAP, :value, row=:Site, color=:type) * visual(Lines)
+    return p, xlabel, ylabel
+end
+
+# Now call with labels dynamically:
+
+p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass")
+p2, xlabel2, ylabel2 = dynamic_layer(df_comparison["plant"], "cumulated_n_leaf_emitted")
+p3, xlabel3, ylabel3 = dynamic_layer(df_comparison["female"], "bunch_dry_biomass")
+p4, xlabel4, ylabel4 = dynamic_layer(df_comparison["plant"], "total_n_bunches_harvested")
+p5, xlabel5, ylabel5 = dynamic_layer(df_comparison["leaf"], "Leaf_area_17")
+p6, xlabel6, ylabel6 = dynamic_layer(df_comparison["female"], "avg_n_fruit_per_bunch")
+p7, xlabel7, ylabel7 = dynamic_layer(df_comparison["female"], "fruit_dry_mass_per_bunch")
+p8, xlabel8, ylabel8 = dynamic_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch")
+p9, xlabel9, ylabel9 = dynamic_layer(df_comparison["female"], "bunch_dry_mass_per_bunch")
+p10, xlabel10, ylabel10 = dynamic_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch")
+p11, xlabel11, ylabel11 = dynamic_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch")
+p12, xlabel12, ylabel12 = evaluate_generic_dynamic_drawable(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
+
+fig_dynamic = Figure(resolution=(4200, 2400))
+
+subfig1 = draw!(fig_dynamic[1, 1], p1, axis=(; ylabel=ylabel1))
+subfig2 = draw!(fig_dynamic[1, 2], p2, axis=(; ylabel=ylabel2))
+subfig3 = draw!(fig_dynamic[1, 3], p3, axis=(; ylabel=ylabel3))
+subfig4 = draw!(fig_dynamic[2, 1], p4, axis=(; ylabel=ylabel4))
+subfig5 = draw!(fig_dynamic[2, 2], p5, axis=(; ylabel=ylabel5))
+subfig6 = draw!(fig_dynamic[2, 3], p6, axis=(; ylabel=ylabel6))
+subfig7 = draw!(fig_dynamic[3, 1], p7, axis=(; ylabel=ylabel7))
+subfig8 = draw!(fig_dynamic[3, 2], p8, axis=(; ylabel=ylabel8))
+subfig9 = draw!(fig_dynamic[3, 3], p9, axis=(; ylabel=ylabel9))
+subfig10 = draw!(fig_dynamic[4, 1], p10, axis=(; ylabel=ylabel10))
+subfig11 = draw!(fig_dynamic[4, 2], p11, axis=(; ylabel=ylabel11))
+subfig12 = draw!(fig_dynamic[4, 3], p12, axis=(; ylabel=ylabel12))
+
+legend!(
+    fig_dynamic[end+1, 1:3],
+    subfig1;
+    orientation=:horizontal,
+    tellheight=true
+)
+
+fig_dynamic
+
+mkpath("2-results/calibration/1-Report")
+save("2-results/calibration/1-Report/dynamic_line_all.png", fig_dynamic)
+
 #? Compare simulations with different parameter values:
 params_defaults = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
 params_defaults = Dict{AbstractString,Any}(string(k) => v for (k, v) in params_defaults)
@@ -111,8 +178,6 @@ evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"],
 
 # f
 
-#? plot all the variables in a single figure
-
 function scatter_layer(df, variable_name)
     df = XPalmCalibration.rename_variables_names(df, variable_name)
     filter!(row -> !ismissing(row.observed), df)
@@ -135,9 +200,10 @@ function scatter_layer(df, variable_name)
     return layer, min_axis, max_axis
 end
 
+#? plot all scatter with parameter comparison in a single figure
 layer1, min1, max1 = scatter_layer(df_comparison["plant"], "bunch_fresh_biomass")
 layer2, min2, max2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted")
-layer3, min3, max3 = scatter_layer(df_comparison["plant"], "bunch_dry_biomass") #!still eror even if its not empty :(
+layer3, min3, max3 = scatter_layer(df_comparison["female"], "bunch_dry_biomass")
 layer4, min4, max4 = scatter_layer(df_comparison["plant"], "total_n_bunches_harvested")
 layer5, min5, max5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17")
 layer6, min6, max6 = scatter_layer(df_comparison["female"], "avg_n_fruit_per_bunch")
@@ -162,66 +228,41 @@ p10 = layer10
 p11 = layer11
 p12 = layer12
 
-f = Figure(resolution=(2100, 1200))
+fig_scatter = Figure(resolution=(2100, 1200))
 
-draw!(f[1, 1], p1,
-    axis=(; aspect=1, limits=((min1, max1), (min1, max1))),
-    scales(Color=(; legend=false))
+scatter1 = draw!(fig_scatter[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
+
+scatter2 = draw!(fig_scatter[1, 2], p2, axis=(; aspect=1, limits=((min2, max2), (min2, max2))))
+
+scatter2 = draw!(fig_scatter[1, 3], p3, axis=(; aspect=1, limits=((min3, max3), (min3, max3))))
+
+scatter4 = draw!(fig_scatter[2, 1], p4, axis=(; aspect=1, limits=((min4, max4), (min4, max4))))
+
+scatter5 = draw!(fig_scatter[2, 2], p5, axis=(; aspect=1, limits=((min5, max5), (min5, max5))))
+
+scatter6 = draw!(fig_scatter[2, 3], p6, axis=(; aspect=1, limits=((min6, max6), (min6, max6))))
+
+scatter7 = draw!(fig_scatter[3, 1], p7, axis=(; aspect=1, limits=((min7, max7), (min7, max7))))
+
+scatter8 = draw!(fig_scatter[3, 2], p8, axis=(; aspect=1, limits=((min8, max8), (min8, max8))))
+
+scatter9 = draw!(fig_scatter[3, 3], p9, axis=(; aspect=1, limits=((min9, max9), (min9, max9))))
+
+scatter10 = draw!(fig_scatter[4, 1], p10, axis=(; aspect=1, limits=((min10, max10), (min10, max10))))
+
+scatter11 = draw!(fig_scatter[4, 2], p11, axis=(; aspect=1, limits=((min11, max11), (min11, max11))))
+
+scatter12 = draw!(fig_scatter[4, 3], p12, axis=(; aspect=1, limits=((min12, max12), (min12, max12))))
+
+legend!(
+    fig_scatter[end+1, 1:3],
+    scatter1;
+    orientation=:horizontal,
+    tellheight=true
 )
 
-draw!(f[1, 2], p2,
-    axis=(; aspect=1, limits=((min2, max2), (min2, max2))),
-    scales(Color=(; legend=false))
-)
+fig_scatter
 
-draw!(f[1, 3], p3,
-    axis=(; aspect=1, limits=((min3, max3), (min3, max3))),
-    scales(Color=(; legend=false))
-)
+mkpath("2-results/calibration/1-Report")
+save("2-results/calibration/1-Report/scatter_comparison_all.png", fig_scatter)
 
-draw!(f[2, 1], p4,
-    axis=(; aspect=1, limits=((min4, max4), (min4, max4))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[2, 2], p5,
-    axis=(; aspect=1, limits=((min5, max5), (min5, max5))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[2, 3], p6,
-    axis=(; aspect=1, limits=((min6, max6), (min6, max6))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[3, 1], p7,
-    axis=(; aspect=1, limits=((min7, max7), (min7, max7))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[3, 2], p8,
-    axis=(; aspect=1, limits=((min8, max8), (min8, max8))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[3, 3], p9,
-    axis=(; aspect=1, limits=((min9, max9), (min9, max9))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[4, 1], p10,
-    axis=(; aspect=1, limits=((min10, max10), (min10, max10))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[4, 2], p11,
-    axis=(; aspect=1, limits=((min11, max11), (min11, max11))),
-    scales(Color=(; legend=false))
-)
-
-draw!(f[4, 3], p12,
-    axis=(; aspect=1, limits=((min12, max12), (min12, max12))),
-    scales(Color=(; legend=false))
-)
-
-f
