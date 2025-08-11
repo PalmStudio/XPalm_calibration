@@ -117,7 +117,6 @@ df_production_MAP = combine(
         nrow => :n_of_bunch,
         :DryMesocarpOilContent => (x -> fn_no_missings(x, mean)) => :DryMesocarpOilContent,
         :MesocarpsSampleWC => (x -> fn_no_missings(x, mean)) => :MesocarpsSampleWC,
-        :n_of_fruit => sum => :n_of_fruit_total,
         :n_of_fruit => (x -> fn_no_missings(x, mean)) => :n_of_fruit_average,
         # Note on the following variables: we cannot use the sum because only one bunch out of many (from different trees of the same genotype) was dissected per observation date:
         :biomass_fresh_fruit => (x -> fn_no_missings(x, mean)) => :fruit_fresh_mass_per_bunch, #! Fresh mesocarp biomass per bunch.
