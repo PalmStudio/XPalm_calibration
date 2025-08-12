@@ -14,6 +14,7 @@ function evaluate(df_plant, df_female, df_leaf, path_outputs)
     fig_bunch_fresh_mass_per_bunch_dynamic, fig_bunch_fresh_mass_per_bunch_scatter, statistics_bunch_fresh_mass_per_bunch = evaluate_bunch_fresh_mass_per_bunch(df_female)
     fig_stalk_dry_biomass_per_bunch_dynamic, fig_stalk_dry_biomass_per_bunch_scatter, statistics_stalk_dry_biomass_per_bunch = evaluate_stalk_dry_biomass_per_bunch(df_female)
     fig_stalk_fresh_biomass_per_bunch_dynamic, fig_stalk_fresh_biomass_per_bunch_scatter, statistics_stalk_fresh_biomass_per_bunch = evaluate_stalk_fresh_biomass_per_bunch(df_female)
+    fig_cumulated_FFB_dynamic, fig_cumulated_FFB_scatter, statistics_cumulated_FFB = evaluate_cumulated_FFB(df_plant)
 
 
     mkpath(path_outputs)
@@ -72,6 +73,10 @@ function evaluate(df_plant, df_female, df_leaf, path_outputs)
     save(joinpath(path_outputs, "12.stalk_fresh_biomass_per_bunch (kg bunch⁻¹ MAP⁻¹)_scatter.png"), fig_stalk_fresh_biomass_per_bunch_scatter)
     CSV.write(joinpath(path_outputs, "12.Statistics_stalk_fresh_biomass_per_bunch.csv"), statistics_stalk_fresh_biomass_per_bunch)
 
+    save(joinpath(path_outputs, "13.cumulated FFB (kg plant⁻¹ MAP⁻¹)_dynamic.png"), fig_cumulated_FFB_dynamic)
+    save(joinpath(path_outputs, "13.cumulated FFB (kg plant⁻¹ MAP⁻¹)_scatter.png"), fig_cumulated_FFB_scatter)
+    CSV.write(joinpath(path_outputs, "13.Statistics_cumulated FFB (kg plant⁻¹ MAP⁻¹).csv"), statistics_cumulated_FFB)
+
 
     return (;
         phyllochron=(; dynamic=fig_phyllochron_dynamic, scatter=fig_phyllochron_scatter, statistics=statistics_phyllochron),
@@ -79,12 +84,13 @@ function evaluate(df_plant, df_female, df_leaf, path_outputs)
         n_bunch=(; dynamic=fig_n_bunch_dynamic, scatter=fig_n_bunch_scatter, statistics=statistics_n_bunch),
         Leaf_area_17=(; dynamic=fig_leaf_area_17_dynamic, scatter=fig_leaf_area_17_scatter, statistics=statistics_leaf_area_17),
         bunch_dry_biomass=(; dynamic=fig_bunch_dry_biomass_dynamic, scatter=fig_bunch_dry_biomass_scatter, statistics=statistics_bunch_dry_biomass),
-        avg_n_fruit_per_bunch_dynamic=(; dynamic=fig_avg_n_fruit_per_bunch_dynamic, scatter=fig_avg_n_fruit_per_bunch_scatter, statistics=statistics_avg_n_fruit_per_bunch),
-        fruit_dry_mass_per_bunch_dynamic=(; dynamic=fig_fruit_dry_mass_per_bunch_dynamic, scatter=fig_fruit_dry_mass_per_bunch_scatter, statistics=statistics_fruit_dry_mass_per_bunch),
-        fruit_fresh_mass_per_bunch_dynamic=(; dynamic=fig_fruit_fresh_mass_per_bunch_dynamic, scatter=fig_fruit_fresh_mass_per_bunch_scatter, statistics=statistics_fruit_fresh_mass_per_bunch),
-        bunch_dry_mass_per_bunch_dynamic=(; dynamic=fig_bunch_dry_mass_per_bunch_dynamic, scatter=fig_bunch_dry_mass_per_bunch_scatter, statistics=statistics_bunch_dry_mass_per_bunch),
-        bunch_fresh_mass_per_bunch_dynamic=(; dynamic=fig_bunch_fresh_mass_per_bunch_dynamic, scatter=fig_bunch_fresh_mass_per_bunch_scatter, statistics=statistics_bunch_fresh_mass_per_bunch),
-        stalk_dry_biomass_per_bunch_dynamic=(; dynamic=fig_stalk_dry_biomass_per_bunch_dynamic, scatter=fig_stalk_dry_biomass_per_bunch_scatter, statistics=statistics_stalk_dry_biomass_per_bunch),
-        stalk_fresh_biomass_per_bunch_dynamic=(; dynamic=fig_stalk_fresh_biomass_per_bunch_dynamic, scatter=fig_stalk_fresh_biomass_per_bunch_scatter, statistics=statistics_stalk_fresh_biomass_per_bunch)
+        avg_n_fruit_per_bunch=(; dynamic=fig_avg_n_fruit_per_bunch_dynamic, scatter=fig_avg_n_fruit_per_bunch_scatter, statistics=statistics_avg_n_fruit_per_bunch),
+        fruit_dry_mass_per_bunch=(; dynamic=fig_fruit_dry_mass_per_bunch_dynamic, scatter=fig_fruit_dry_mass_per_bunch_scatter, statistics=statistics_fruit_dry_mass_per_bunch),
+        fruit_fresh_mass_per_bunch=(; dynamic=fig_fruit_fresh_mass_per_bunch_dynamic, scatter=fig_fruit_fresh_mass_per_bunch_scatter, statistics=statistics_fruit_fresh_mass_per_bunch),
+        bunch_dry_mass_per_bunch=(; dynamic=fig_bunch_dry_mass_per_bunch_dynamic, scatter=fig_bunch_dry_mass_per_bunch_scatter, statistics=statistics_bunch_dry_mass_per_bunch),
+        bunch_fresh_mass_per_bunch=(; dynamic=fig_bunch_fresh_mass_per_bunch_dynamic, scatter=fig_bunch_fresh_mass_per_bunch_scatter, statistics=statistics_bunch_fresh_mass_per_bunch),
+        stalk_dry_biomass_per_bunch=(; dynamic=fig_stalk_dry_biomass_per_bunch_dynamic, scatter=fig_stalk_dry_biomass_per_bunch_scatter, statistics=statistics_stalk_dry_biomass_per_bunch),
+        stalk_fresh_biomass_per_bunch=(; dynamic=fig_stalk_fresh_biomass_per_bunch_dynamic, scatter=fig_stalk_fresh_biomass_per_bunch_scatter, statistics=statistics_stalk_fresh_biomass_per_bunch),
+        cumulated_FFB=(; dynamic=fig_cumulated_FFB_dynamic, scatter=fig_cumulated_FFB_scatter, statistics=statistics_cumulated_FFB)
     )
 end

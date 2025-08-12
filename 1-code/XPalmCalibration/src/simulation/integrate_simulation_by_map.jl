@@ -39,6 +39,13 @@ function integrate_simulation_by_map(
     #!compute FFB (bunch_fresh_biomass from biomass_bunch_harvested)
     dfs_plant_MAP[!, :bunch_fresh_biomass] = (dfs_plant_MAP.biomass_bunch_harvested_MAP .* 1e-3 ./ CC_Fruit) .* bunch_dry_to_fresh_ratio #!FFB
 
+    #!compute the cumulated FFB (MAP 50 - 100) from bunch fresh biomass start from 0 in the MAP 50
+    FFB_50_to_100 = filter(row -> (50 <= row.MAP <= 100) && !ismissing(row.bunch_fresh_biomass), dfs_plant_MAP)[:, [:MAP, :Site, :bunch_fresh_biomass]]
+    transform!(groupby(FFB_50_to_100, :Site), :bunch_fresh_biomass => cumsum => :cumulated_FFB)
+    select!(FFB_50_to_100, Not(:bunch_fresh_biomass))
+    leftjoin!(dfs_plant_MAP, FFB_50_to_100, on=[:Site, :MAP])
+
+
     # Compute cumulated_n_leaf_emitted based on the first observation MAP of CIGE each site
     dfs_plant_MAP[!, :cumulated_n_leaf_emitted] = Vector{Union{Missing,Int64}}(missing, nrow(dfs_plant_MAP))
     thresholds = start_MAP()

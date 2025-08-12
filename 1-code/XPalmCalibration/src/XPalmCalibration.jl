@@ -34,6 +34,7 @@ include("evaluation/9-bunch_dry_mass_per_bunch.jl")
 include("evaluation/10-bunch_fresh_mass_per_bunch.jl")
 include("evaluation/11-stalk_dry_biomass_per_bunch.jl")
 include("evaluation/12-stalk_fresh_biomass_per_bunch.jl")
+include("evaluation/13-cumulated_FFB.jl")
 
 
 include("evaluation/evaluation.jl")
