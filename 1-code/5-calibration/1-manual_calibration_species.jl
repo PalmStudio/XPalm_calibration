@@ -58,7 +58,7 @@ out_vars = Dict{String,Any}(
 parameters = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
 df_comparison = run_simulation_all_cige_by_map(df_CIGE_species, parameters, meteos, out_vars)
 # Evaluate the simulation against CIGE data
-out_eval = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
+out_eval = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/1-Report/Model_evaluation")
 
 out_eval.ffb.statistics
 
@@ -135,6 +135,28 @@ legend!(
 fig_yield
 save("2-results/calibration/1-report/evaluation_yield.png", fig_yield)
 
+#!Plot highligted FFB 50 to 100 MAP
+
+# Create the layer plot
+p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
+fig = Figure(resolution=(900, 600))
+figgrid = draw!(fig[1, 1], p1, axis=(; xlabel=xlabel1, ylabel=ylabel1, ylabelsize=20)) # Draw the AlgebraOfGraphics layer into the figure, with axis options
+for ax_entry in vec(figgrid)
+    ax = ax_entry.axis
+    y_min = ax.finallimits[].origin[2]
+    y_max = ax.finallimits[].origin[2] + ax.finallimits[].widths[2]
+    x1, x2 = 50, 100
+    points = Point2f[(x1, y_min), (x2, y_min), (x2, y_max), (x1, y_max)]
+    poly!(ax, points, color=(:blue, 0.15), strokewidth=0)
+end
+legend!(
+    fig[end+1, 1],
+    figgrid;
+    orientation=:horizontal,
+    tellheight=true, labelsize=16
+)
+display(fig)
+save("2-results/calibration/1-report/FFB_highligted.png", fig)
 
 #? Compare simulations with different parameter values:
 params_defaults = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
@@ -327,5 +349,3 @@ stats_ref1 = filter(row -> row.Site == "All", out_eval_2.ffb.statistics)
 # )
 
 # fig_scatter
-
-filter(:observed => !ismissing, XPalmCalibration.rename_variables_names(df_female, "avg_n_bunch"))
