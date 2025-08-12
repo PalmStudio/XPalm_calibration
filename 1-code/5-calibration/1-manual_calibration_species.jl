@@ -171,20 +171,6 @@ out_eval_2 = evaluate(df_comparison["plant"], df_comparison["female"], df_compar
 # var2_df.variable_name .= "Cumulated Leaves (#)"
 
 
-var3_df = XPalmCalibration.rename_variables_names(df_comparison["plant"], "bunch_fresh_biomass")
-filter!(row -> !ismissing(row.observed), var3_df)
-var3_df = stack(var3_df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-var3_df.variable_name .= "Total Number of Bunches Harvested (plant⁻¹ MAP⁻¹)"
-
-var_bunch = XPalmCalibration.rename_variables_names(df_comparison["female"], "bunch_dry_mass_per_bunch")
-sum(completecases(var_bunch[:, [:observed, :reference_simulation]]))
-names(var_bunch)
-eltype(var_bunch.reference_simulation)
-eltype(var_bunch.observed)
-
-df_eval_test = var_bunch[:, [:observed, :reference_simulation]]
-dropmissing!(df_eval_test)
-mean(df_eval_test.observed), mean(df_eval_test.reference_simulation)
 
 # df_comp = vcat(var1_df, var2_df, var3_df)
 
