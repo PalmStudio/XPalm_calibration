@@ -5,7 +5,7 @@ Evaluates the statistics of a given variable in the DataFrame `df` and returns a
 """
 function evaluate_statistics(df, variable_name)
     df = rename_variables_names(df, variable_name)
-    filter!(row -> !ismissing(row.observed), df)
+    filter!(row -> !ismissing(row.observed) && all(!ismissing, row[Not(:MAP, :Site, :observed)]), df)
     df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
     stats = combine(
         groupby(df, [:Site, :model], sort=true),

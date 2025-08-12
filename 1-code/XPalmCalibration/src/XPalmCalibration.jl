@@ -15,6 +15,8 @@ include("simulation/run_simulations_all_sites.jl")
 include("simulation/integrate_simulation_by_map.jl")
 include("simulation/compare_simulations.jl")
 include("meteo/import_meteo_cige.jl")
+include("dynamic_layer.jl")
+include("scatter_layer.jl")
 
 # Evaluation
 include("rename_variables.jl")
@@ -44,4 +46,7 @@ export run_simulations_all_cige_sites, run_simulation_all_cige_by_map
 export integrate_simulation_by_map
 export import_meteo_cige
 export evaluate
+export dynamic_layer
+export scatter_SITE
+export scatter_layer
 end

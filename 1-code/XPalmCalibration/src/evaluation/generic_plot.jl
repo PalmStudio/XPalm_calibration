@@ -42,25 +42,3 @@ function evaluate_generic_scatter(df, variable_name; ylabel="Simulation", xlabel
 
     return fig
 end
-
-function scatter_layer(df, variable_name)
-    df = XPalmCalibration.rename_variables_names(df, variable_name)
-    filter!(row -> !ismissing(row.observed), df)
-    df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-
-    # Add the variable_name as a new column for faceting
-    df.variable_name = fill(variable_name, nrow(df))
-
-    obs_min = minimum(skipmissing(df.observed))
-    obs_max = maximum(skipmissing(df.observed))
-    sim_min = minimum(skipmissing(df.simulation))
-    sim_max = maximum(skipmissing(df.simulation))
-
-    min_axis = min(obs_min, sim_min)
-    max_axis = max(obs_max, sim_max)
-
-    layer = mapping([0], [1]) * visual(ABLines, color=:slategray, linestyle=:dash) +
-            data(df) * mapping(:observed, :simulation, col=:Site, color=:model, row=:variable_name) * visual(Scatter)
-
-    return layer, min_axis, max_axis
-end

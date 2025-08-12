@@ -78,29 +78,20 @@ const variable_labels = Dict(
     "stalk_fresh_biomass_per_bunch" => "Stalk fresh biomass (kg bunch⁻¹)",
 )
 
-function dynamic_layer(df, variable_name; xlabel="Month after planting")
-    ylabel = get(variable_labels, variable_name, variable_name)  # fallback to variable_name if not found
-    df = XPalmCalibration.rename_variables_names(df, variable_name)
-    df_long = stack(df, Not(:MAP, :Site), variable_name=:type, value_name=:value)
-    filter!(row -> row.type != "observed" || !ismissing(row.value), df_long)
-    p = data(df_long) * mapping(:MAP, :value, row=:Site, color=:type) * visual(Lines)
-    return p, xlabel, ylabel
-end
 
 # Now call with labels dynamically:
-
-p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass")
-p2, xlabel2, ylabel2 = dynamic_layer(df_comparison["plant"], "cumulated_n_leaf_emitted")
-p3, xlabel3, ylabel3 = dynamic_layer(df_comparison["female"], "bunch_dry_biomass")
-p4, xlabel4, ylabel4 = dynamic_layer(df_comparison["plant"], "total_n_bunches_harvested")
-p5, xlabel5, ylabel5 = dynamic_layer(df_comparison["leaf"], "Leaf_area_17")
-p6, xlabel6, ylabel6 = dynamic_layer(df_comparison["female"], "avg_n_fruit_per_bunch")
-p7, xlabel7, ylabel7 = dynamic_layer(df_comparison["female"], "fruit_dry_mass_per_bunch")
-p8, xlabel8, ylabel8 = dynamic_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch")
-p9, xlabel9, ylabel9 = dynamic_layer(df_comparison["female"], "bunch_dry_mass_per_bunch")
-p10, xlabel10, ylabel10 = dynamic_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch")
-p11, xlabel11, ylabel11 = dynamic_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch")
-p12, xlabel12, ylabel12 = dynamic_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
+p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
+p2, xlabel2, ylabel2 = dynamic_layer(df_comparison["plant"], "cumulated_n_leaf_emitted", variable_labels)
+p3, xlabel3, ylabel3 = dynamic_layer(df_comparison["female"], "bunch_dry_biomass", variable_labels)
+p4, xlabel4, ylabel4 = dynamic_layer(df_comparison["plant"], "total_n_bunches_harvested", variable_labels)
+p5, xlabel5, ylabel5 = dynamic_layer(df_comparison["leaf"], "Leaf_area_17", variable_labels)
+p6, xlabel6, ylabel6 = dynamic_layer(df_comparison["female"], "avg_n_fruit_per_bunch", variable_labels)
+p7, xlabel7, ylabel7 = dynamic_layer(df_comparison["female"], "fruit_dry_mass_per_bunch", variable_labels)
+p8, xlabel8, ylabel8 = dynamic_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch", variable_labels)
+p9, xlabel9, ylabel9 = dynamic_layer(df_comparison["female"], "bunch_dry_mass_per_bunch", variable_labels)
+p10, xlabel10, ylabel10 = dynamic_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch", variable_labels)
+p11, xlabel11, ylabel11 = dynamic_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch", variable_labels)
+p12, xlabel12, ylabel12 = dynamic_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch", variable_labels)
 
 fig_bunch_component = Figure(resolution=(1800, 1500))
 subfig6 = draw!(fig_bunch_component[1, 1:2], p6, axis=(; ylabel=ylabel6, ylabelsize=20))
@@ -180,10 +171,20 @@ out_eval_2 = evaluate(df_comparison["plant"], df_comparison["female"], df_compar
 # var2_df.variable_name .= "Cumulated Leaves (#)"
 
 
-# var3_df = XPalmCalibration.rename_variables_names(df_comparison["plant"], "total_n_bunches_harvested")
-# filter!(row -> !ismissing(row.observed), var3_df)
-# var3_df = stack(var3_df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-# var3_df.variable_name .= "Total Number of Bunches Harvested (plant⁻¹ MAP⁻¹)"
+var3_df = XPalmCalibration.rename_variables_names(df_comparison["plant"], "bunch_fresh_biomass")
+filter!(row -> !ismissing(row.observed), var3_df)
+var3_df = stack(var3_df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
+var3_df.variable_name .= "Total Number of Bunches Harvested (plant⁻¹ MAP⁻¹)"
+
+var_bunch = XPalmCalibration.rename_variables_names(df_comparison["female"], "bunch_dry_mass_per_bunch")
+sum(completecases(var_bunch[:, [:observed, :reference_simulation]]))
+names(var_bunch)
+eltype(var_bunch.reference_simulation)
+eltype(var_bunch.observed)
+
+df_eval_test = var_bunch[:, [:observed, :reference_simulation]]
+dropmissing!(df_eval_test)
+mean(df_eval_test.observed), mean(df_eval_test.reference_simulation)
 
 # df_comp = vcat(var1_df, var2_df, var3_df)
 
@@ -199,59 +200,24 @@ out_eval_2 = evaluate(df_comparison["plant"], df_comparison["female"], df_compar
 
 # f
 
-function scatter_layer(df, variable_name)
-    df = XPalmCalibration.rename_variables_names(df, variable_name)
-    filter!(row -> !ismissing(row.observed), df)
-    df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-    ylabel = get(variable_labels, variable_name, variable_name)
-    # Add the variable_name as a new column for faceting
-    df.variable_name = fill(ylabel, nrow(df))
-    obs_min = minimum(skipmissing(df.observed))
-    obs_max = maximum(skipmissing(df.observed))
-    sim_min = minimum(skipmissing(df.simulation))
-    sim_max = maximum(skipmissing(df.simulation))
-
-    min_axis = min(obs_min, sim_min)
-    max_axis = max(obs_max, sim_max)
-
-    layer = mapping([0], [1]) * visual(ABLines, color=:slategray, linestyle=:dash) +
-            data(df) * mapping(:observed, :simulation, col=:Site, color=:model, row=:variable_name) * visual(Scatter)
-
-    return layer, min_axis, max_axis
-end
-
 #? plot all scatter with parameter comparison in a single figure
-layer1, min1, max1 = scatter_layer(df_comparison["plant"], "bunch_fresh_biomass")
-layer2, min2, max2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted")
-layer3, min3, max3 = scatter_layer(df_comparison["female"], "bunch_dry_biomass")
-layer4, min4, max4 = scatter_layer(df_comparison["plant"], "total_n_bunches_harvested")
-layer5, min5, max5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17")
-layer6, min6, max6 = scatter_layer(df_comparison["female"], "avg_n_fruit_per_bunch")
-layer7, min7, max7 = scatter_layer(df_comparison["female"], "fruit_dry_mass_per_bunch")
-layer8, min8, max8 = scatter_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch")
-layer9, min9, max9 = scatter_layer(df_comparison["female"], "bunch_dry_mass_per_bunch")
-layer10, min10, max10 = scatter_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch")
-layer11, min11, max11 = scatter_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch")
-layer12, min12, max12 = scatter_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
-
-
-p1 = layer1
-p2 = layer2
-p3 = layer3
-p4 = layer4
-p5 = layer5
-p6 = layer6
-p7 = layer7
-p8 = layer8
-p9 = layer9
-p10 = layer10
-p11 = layer11
-p12 = layer12
+layer1, min1, max1 = scatter_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
+layer2, min2, max2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted", variable_labels)
+layer3, min3, max3 = scatter_layer(df_comparison["female"], "bunch_dry_biomass", variable_labels)
+layer4, min4, max4 = scatter_layer(df_comparison["plant"], "total_n_bunches_harvested", variable_labels)
+layer5, min5, max5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17", variable_labels)
+layer6, min6, max6 = scatter_layer(df_comparison["female"], "avg_n_fruit_per_bunch", variable_labels)
+layer7, min7, max7 = scatter_layer(df_comparison["female"], "fruit_dry_mass_per_bunch", variable_labels)
+layer8, min8, max8 = scatter_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch", variable_labels)
+layer9, min9, max9 = scatter_layer(df_comparison["female"], "bunch_dry_mass_per_bunch", variable_labels)
+layer10, min10, max10 = scatter_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch", variable_labels)
+layer11, min11, max11 = scatter_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch", variable_labels)
+layer12, min12, max12 = scatter_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch", variable_labels)
 
 #scatter bunch biomass
 scatter_bunch_biomass = Figure(resolution=(700, 600))
-scatter3 = draw!(scatter_bunch_biomass[1, 1], p3, axis=(; aspect=1, ylabelsize=16, limits=((min3, max3), (min3, max3))))
-scatter1 = draw!(scatter_bunch_biomass[2, 1], p1, axis=(; aspect=1, ylabelsize=16, limits=((min1, max1), (min1, max1))))
+scatter3 = draw!(scatter_bunch_biomass[1, 1], layer3, axis=(; aspect=1, ylabelsize=16, limits=((min3, max3), (min3, max3))))
+scatter1 = draw!(scatter_bunch_biomass[2, 1], layer1, axis=(; aspect=1, ylabelsize=16, limits=((min1, max1), (min1, max1))))
 legend!(
     scatter_bunch_biomass[end+1, 1:1],
     scatter1;
@@ -263,8 +229,8 @@ save("2-results/calibration/1-report/1.calibration_bunch_biomass.png", scatter_b
 
 #bunch dry mass per bunch vs number of fruit per bunch
 scatter_n_fruit_bunch = Figure(resolution=(700, 600))
-scatter9 = draw!(scatter_n_fruit_bunch[1, 1], p9, axis=(; aspect=1, ylabelsize=10, limits=((min9, max9), (min9, max9))))
-scatter6 = draw!(scatter_n_fruit_bunch[2, 1], p6, axis=(; aspect=1, ylabelsize=10, limits=((min6, max6), (min6, max6))))
+scatter9 = draw!(scatter_n_fruit_bunch[1, 1], layer9, axis=(; aspect=1, ylabelsize=10, limits=((min9, max9), (min9, max9))))
+scatter6 = draw!(scatter_n_fruit_bunch[2, 1], layer6, axis=(; aspect=1, ylabelsize=10, limits=((min6, max6), (min6, max6))))
 legend!(
     scatter_n_fruit_bunch[end+1, 1:1],
     scatter9;
@@ -276,29 +242,8 @@ save("2-results/calibration/1-report/2.bunch_n_fruit.png", scatter_n_fruit_bunch
 
 
 #scatter FFB
-function scatter_FFB(df, variable_name)
-    df = XPalmCalibration.rename_variables_names(df, variable_name)
-    filter!(row -> !ismissing(row.observed), df)
-    df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-    ylabel = get(variable_labels, variable_name, variable_name)
-    # Add the variable_name as a new column for faceting
-    df.variable_name = fill(ylabel, nrow(df))
-    obs_min = minimum(skipmissing(df.observed))
-    obs_max = maximum(skipmissing(df.observed))
-    sim_min = minimum(skipmissing(df.simulation))
-    sim_max = maximum(skipmissing(df.simulation))
-
-    min_axis = min(obs_min, sim_min)
-    max_axis = max(obs_max, sim_max)
-
-    layer = mapping([0], [1]) * visual(ABLines, color=:slategray, linestyle=:dash) +
-            data(df) * mapping(:observed, :simulation, col=:model, color=:Site, row=:variable_name) * visual(Scatter)
-
-    return layer, min_axis, max_axis
-end
-
 fig_FFB = Figure(resolution=(1050, 600))
-layer1, min1, max1 = scatter_FFB(df_comparison["plant"], "bunch_fresh_biomass")
+layer1, min1, max1 = scatter_SITE(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
 p1 = layer1
 scatter1 = draw!(fig_FFB[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
 legend!(
@@ -397,3 +342,4 @@ stats_ref1 = filter(row -> row.Site == "All", out_eval_2.ffb.statistics)
 
 # fig_scatter
 
+filter(:observed => !ismissing, XPalmCalibration.rename_variables_names(df_female, "avg_n_bunch"))
