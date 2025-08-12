@@ -20,13 +20,18 @@ df_CIGE_species = combine( #here is we dont consider about the genotype thats wh
     :fruit_fresh_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :fruit_fresh_mass_per_bunch, #average in kg
     :fruit_dry_mass_per_bunch => (x -> fn_no_missings(x, mean)) => :fruit_dry_mass_per_bunch, #average in kg
     :n_of_bunch => (x -> fn_no_missings(x, median)) => :total_n_bunches_harvested,
-    :n_of_fruit_total => (x -> fn_no_missings(x, median)) => :total_n_fruit_harvested,
     :n_of_fruit_average => (x -> fn_no_missings(x, mean)) => :avg_n_fruit_per_bunch,
     :stalk_dry_biomass_per_bunch => (x -> fn_no_missings(x, mean)) => :stalk_dry_biomass_per_bunch, # in kg
     :stalk_fresh_biomass_per_bunch => (x -> fn_no_missings(x, mean)) => :stalk_fresh_biomass_per_bunch, # in kg
     :bunch_water_content => (x -> fn_no_missings(x, mean)) => :bunch_water_content, # in fraction
-    :avg_stalk_water_content => (x -> fn_no_missings(x, mean)) => :stalk_water_content
+    :avg_stalk_water_content => (x -> fn_no_missings(x, mean)) => :stalk_water_content,
 )
+
+#!cumulated FFB 50 - 100 MAP
+FFB_50_to_100 = filter(row -> (50 <= row.MAP <= 100) && !ismissing(row.bunch_fresh_biomass), df_CIGE_species)[:, [:MAP, :Site, :bunch_fresh_biomass]]
+transform!(groupby(FFB_50_to_100, :Site), :bunch_fresh_biomass => (x -> cumsum(x) .- first(cumsum(x))) => :cumulated_FFB)
+select!(FFB_50_to_100, Not(:bunch_fresh_biomass))
+leftjoin!(df_CIGE_species, FFB_50_to_100, on=[:Site, :MAP])
 
 df_CIGE_site = combine(groupby(df_CIGE, [:Site]), :bunch_fresh_mass_total => (x -> mean(filter(!ismissing, x) |> y -> filter(z -> z > 0.0, y))) => :avg_bunch_fresh_biomass)
 
@@ -59,7 +64,7 @@ out_eval.ffb.statistics
 
 #? Map dynamic plot into one figure
 const variable_labels = Dict(
-    "bunch_fresh_biomass" => "Bunch fresh biomass (kg plant⁻¹)",
+    "bunch_fresh_biomass" => "FFB (kg plant⁻¹)",
     "cumulated_n_leaf_emitted" => "Cumulative number of leaves emitted (plant⁻¹)",
     "bunch_dry_biomass" => "Bunch dry biomass (kg plant⁻¹)",
     "total_n_bunches_harvested" => "Total number of bunches harvested (plant⁻¹)",
@@ -95,34 +100,50 @@ p8, xlabel8, ylabel8 = dynamic_layer(df_comparison["female"], "fruit_fresh_mass_
 p9, xlabel9, ylabel9 = dynamic_layer(df_comparison["female"], "bunch_dry_mass_per_bunch")
 p10, xlabel10, ylabel10 = dynamic_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch")
 p11, xlabel11, ylabel11 = dynamic_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch")
-p12, xlabel12, ylabel12 = evaluate_generic_dynamic_drawable(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
+p12, xlabel12, ylabel12 = dynamic_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
 
-fig_dynamic = Figure(resolution=(4200, 2400))
-
-subfig1 = draw!(fig_dynamic[1, 1], p1, axis=(; ylabel=ylabel1))
-subfig2 = draw!(fig_dynamic[1, 2], p2, axis=(; ylabel=ylabel2))
-subfig3 = draw!(fig_dynamic[1, 3], p3, axis=(; ylabel=ylabel3))
-subfig4 = draw!(fig_dynamic[2, 1], p4, axis=(; ylabel=ylabel4))
-subfig5 = draw!(fig_dynamic[2, 2], p5, axis=(; ylabel=ylabel5))
-subfig6 = draw!(fig_dynamic[2, 3], p6, axis=(; ylabel=ylabel6))
-subfig7 = draw!(fig_dynamic[3, 1], p7, axis=(; ylabel=ylabel7))
-subfig8 = draw!(fig_dynamic[3, 2], p8, axis=(; ylabel=ylabel8))
-subfig9 = draw!(fig_dynamic[3, 3], p9, axis=(; ylabel=ylabel9))
-subfig10 = draw!(fig_dynamic[4, 1], p10, axis=(; ylabel=ylabel10))
-subfig11 = draw!(fig_dynamic[4, 2], p11, axis=(; ylabel=ylabel11))
-subfig12 = draw!(fig_dynamic[4, 3], p12, axis=(; ylabel=ylabel12))
-
+fig_bunch_component = Figure(resolution=(1800, 1500))
+subfig6 = draw!(fig_bunch_component[1, 1:2], p6, axis=(; ylabel=ylabel6, ylabelsize=20))
+subfig9 = draw!(fig_bunch_component[2, 1], p9, axis=(; ylabel=ylabel9, ylabelsize=20))
+subfig10 = draw!(fig_bunch_component[2, 2], p10, axis=(; ylabel=ylabel10, ylabelsize=20))
+subfig7 = draw!(fig_bunch_component[1, 3], p7, axis=(; ylabel=ylabel7, ylabelsize=20))
+subfig8 = draw!(fig_bunch_component[1, 4], p8, axis=(; ylabel=ylabel8, ylabelsize=20))
+subfig11 = draw!(fig_bunch_component[2, 3], p11, axis=(; ylabel=ylabel11, ylabelsize=20))
+subfig12 = draw!(fig_bunch_component[2, 4], p12, axis=(; ylabel=ylabel12, ylabelsize=20))
 legend!(
-    fig_dynamic[end+1, 1:3],
-    subfig1;
+    fig_bunch_component[end+1, 1:4],
+    subfig6;
     orientation=:horizontal,
-    tellheight=true
+    tellheight=true, labelsize=20
 )
+fig_bunch_component
+save("2-results/calibration/1-report/evaluation_bunch_component.png", fig_bunch_component)
 
-fig_dynamic
+fig_pheno = Figure(resolution=(1800, 600))
+subfig2 = draw!(fig_pheno[1, 1], p2, axis=(; ylabel=ylabel2, ylabelsize=20))
+subfig5 = draw!(fig_pheno[1, 2], p5, axis=(; ylabel=ylabel5, ylabelsize=20))
+legend!(
+    fig_pheno[end+1, 1:2],
+    subfig2;
+    orientation=:horizontal,
+    tellheight=true, labelsize=20
+)
+fig_pheno
+save("2-results/calibration/1-report/evaluation_pheno.png", fig_pheno)
 
-mkpath("2-results/calibration/1-Report")
-save("2-results/calibration/1-Report/dynamic_line_all.png", fig_dynamic)
+fig_yield = Figure(resolution=(1500, 800))
+subfig1 = draw!(fig_yield[1, 1:2], p1, axis=(; ylabel=ylabel1, ylabelsize=16))
+subfig3 = draw!(fig_yield[2, 1], p3, axis=(; ylabel=ylabel3, ylabelsize=16))
+subfig4 = draw!(fig_yield[2, 2], p4, axis=(; ylabel=ylabel4, ylabelsize=16))
+legend!(
+    fig_yield[end+1, 1:2],
+    subfig2;
+    orientation=:horizontal,
+    tellheight=true, labelsize=20
+)
+fig_yield
+save("2-results/calibration/1-report/evaluation_yield.png", fig_yield)
+
 
 #? Compare simulations with different parameter values:
 params_defaults = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
@@ -138,13 +159,13 @@ out_eval2 = evaluate(df_comparison["plant"], df_comparison["female"], df_compari
 #? Compare simulations with a reference simulation:
 reference_parameters = YAML.load_file("1-code/5-calibration/xpalm_reference.yml")
 reference_simulation = XPalmCalibration.run_simulations_all_cige_sites(reference_parameters, out_vars, meteos) |> XPalmCalibration.integrate_simulation_by_map
-param_changed = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
+#param_changed = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
 param_changed2 = deepcopy(reference_parameters)
-param_changed2["reproduction"]["sex_ratio"]["sex_ratio_min"] = 0.4
+param_changed2["reproduction"]["yield_formation"]["potential_fruit_number_at_maturity"] = 3000
 
-df_comparison = run_simulation_all_cige_by_map(reference_simulation, df_CIGE_species, [param_changed, param_changed2], meteos, out_vars; suffix=["sex_ratio_min: 0.5", "sex_ratio_min: 0.4"])
+df_comparison = run_simulation_all_cige_by_map(reference_simulation, df_CIGE_species, [param_changed2], meteos, out_vars; suffix=["potential_fruit_number_at_maturity: 3000"])
 # Evaluate the simulation against CIGE data
-evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
+out_eval_2 = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
 
 
 # For plotting several variables in the same plot:
@@ -182,10 +203,9 @@ function scatter_layer(df, variable_name)
     df = XPalmCalibration.rename_variables_names(df, variable_name)
     filter!(row -> !ismissing(row.observed), df)
     df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
-
+    ylabel = get(variable_labels, variable_name, variable_name)
     # Add the variable_name as a new column for faceting
-    df.variable_name = fill(variable_name, nrow(df))
-
+    df.variable_name = fill(ylabel, nrow(df))
     obs_min = minimum(skipmissing(df.observed))
     obs_max = maximum(skipmissing(df.observed))
     sim_min = minimum(skipmissing(df.simulation))
@@ -228,41 +248,152 @@ p10 = layer10
 p11 = layer11
 p12 = layer12
 
-fig_scatter = Figure(resolution=(2100, 1200))
-
-scatter1 = draw!(fig_scatter[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
-
-scatter2 = draw!(fig_scatter[1, 2], p2, axis=(; aspect=1, limits=((min2, max2), (min2, max2))))
-
-scatter2 = draw!(fig_scatter[1, 3], p3, axis=(; aspect=1, limits=((min3, max3), (min3, max3))))
-
-scatter4 = draw!(fig_scatter[2, 1], p4, axis=(; aspect=1, limits=((min4, max4), (min4, max4))))
-
-scatter5 = draw!(fig_scatter[2, 2], p5, axis=(; aspect=1, limits=((min5, max5), (min5, max5))))
-
-scatter6 = draw!(fig_scatter[2, 3], p6, axis=(; aspect=1, limits=((min6, max6), (min6, max6))))
-
-scatter7 = draw!(fig_scatter[3, 1], p7, axis=(; aspect=1, limits=((min7, max7), (min7, max7))))
-
-scatter8 = draw!(fig_scatter[3, 2], p8, axis=(; aspect=1, limits=((min8, max8), (min8, max8))))
-
-scatter9 = draw!(fig_scatter[3, 3], p9, axis=(; aspect=1, limits=((min9, max9), (min9, max9))))
-
-scatter10 = draw!(fig_scatter[4, 1], p10, axis=(; aspect=1, limits=((min10, max10), (min10, max10))))
-
-scatter11 = draw!(fig_scatter[4, 2], p11, axis=(; aspect=1, limits=((min11, max11), (min11, max11))))
-
-scatter12 = draw!(fig_scatter[4, 3], p12, axis=(; aspect=1, limits=((min12, max12), (min12, max12))))
-
+#scatter bunch biomass
+scatter_bunch_biomass = Figure(resolution=(700, 600))
+scatter3 = draw!(scatter_bunch_biomass[1, 1], p3, axis=(; aspect=1, ylabelsize=16, limits=((min3, max3), (min3, max3))))
+scatter1 = draw!(scatter_bunch_biomass[2, 1], p1, axis=(; aspect=1, ylabelsize=16, limits=((min1, max1), (min1, max1))))
 legend!(
-    fig_scatter[end+1, 1:3],
+    scatter_bunch_biomass[end+1, 1:1],
+    scatter1;
+    orientation=:horizontal,
+    tellheight=true
+)
+scatter_bunch_biomass
+save("2-results/calibration/1-report/1.calibration_bunch_biomass.png", scatter_bunch_biomass)
+
+#bunch dry mass per bunch vs number of fruit per bunch
+scatter_n_fruit_bunch = Figure(resolution=(700, 600))
+scatter9 = draw!(scatter_n_fruit_bunch[1, 1], p9, axis=(; aspect=1, ylabelsize=10, limits=((min9, max9), (min9, max9))))
+scatter6 = draw!(scatter_n_fruit_bunch[2, 1], p6, axis=(; aspect=1, ylabelsize=10, limits=((min6, max6), (min6, max6))))
+legend!(
+    scatter_n_fruit_bunch[end+1, 1:1],
+    scatter9;
+    orientation=:horizontal,
+    tellheight=true
+)
+scatter_n_fruit_bunch
+save("2-results/calibration/1-report/2.bunch_n_fruit.png", scatter_n_fruit_bunch)
+
+
+#scatter FFB
+function scatter_FFB(df, variable_name)
+    df = XPalmCalibration.rename_variables_names(df, variable_name)
+    filter!(row -> !ismissing(row.observed), df)
+    df = stack(df, Not(:MAP, :Site, :observed), variable_name=:model, value_name=:simulation)
+    ylabel = get(variable_labels, variable_name, variable_name)
+    # Add the variable_name as a new column for faceting
+    df.variable_name = fill(ylabel, nrow(df))
+    obs_min = minimum(skipmissing(df.observed))
+    obs_max = maximum(skipmissing(df.observed))
+    sim_min = minimum(skipmissing(df.simulation))
+    sim_max = maximum(skipmissing(df.simulation))
+
+    min_axis = min(obs_min, sim_min)
+    max_axis = max(obs_max, sim_max)
+
+    layer = mapping([0], [1]) * visual(ABLines, color=:slategray, linestyle=:dash) +
+            data(df) * mapping(:observed, :simulation, col=:model, color=:Site, row=:variable_name) * visual(Scatter)
+
+    return layer, min_axis, max_axis
+end
+
+fig_FFB = Figure(resolution=(1050, 600))
+layer1, min1, max1 = scatter_FFB(df_comparison["plant"], "bunch_fresh_biomass")
+p1 = layer1
+scatter1 = draw!(fig_FFB[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
+legend!(
+    fig_FFB[end+1, 1:1],
     scatter1;
     orientation=:horizontal,
     tellheight=true
 )
 
-fig_scatter
+fig_FFB
+save("2-results/calibration/1-report/3.scatter_FFB_by_site.png", fig_FFB)
 
-mkpath("2-results/calibration/1-Report")
-save("2-results/calibration/1-Report/scatter_comparison_all.png", fig_scatter)
+out_eval_2.ffb.statistics
+stats_ref1 = filter(row -> row.Site == "All", out_eval_2.ffb.statistics)
+
+# 8×7 DataFrame
+#  Row │ Site    model                              RMSE     nRMSE    Bias     nBias    EF      
+#      │ String  String                             Float64  Float64  Float64  Float64  Float64
+# ─────┼────────────────────────────────────────────────────────────────────────────────────────
+#    1 │ PR      potential_fruit_number_at_maturi…    16.07     0.58  -2.1254    -0.08    -4.45
+#    2 │ PR      reference_simulation                 13.66     0.5   -5.5426    -0.2     -2.94
+#    3 │ SMSE    potential_fruit_number_at_maturi…    17.39     0.36  -5.23      -0.11    -1.07
+#    4 │ SMSE    reference_simulation                 16.11     0.34  -9.093     -0.19    -0.77
+#    5 │ TOWE    potential_fruit_number_at_maturi…    11.38     0.4    0.4656     0.02    -2.16
+#    6 │ TOWE    reference_simulation                  9.13     0.32  -1.8028    -0.06    -1.04
+#    7 │ All     potential_fruit_number_at_maturi…    15.42     0.31  -2.4999    -0.05    -1.21
+#    8 │ All     reference_simulation                 13.55     0.27  -5.7529    -0.11    -0.7
+
+
+#  Row │ Site    model                              RMSE     nRMSE    Bias     nBias    EF      
+#      │ String  String                             Float64  Float64  Float64  Float64  Float64
+# ─────┼────────────────────────────────────────────────────────────────────────────────────────
+#    1 │ All     potential_fruit_number_at_maturi…    15.42     0.31  -2.4999    -0.05    -1.21
+#    2 │ All     reference_simulation                 13.55     0.27  -5.7529    -0.11    -0.7
+
+# #? plot all scatter with parameter comparison in a single figure
+# layer1, min1, max1 = scatter_layer(df_comparison["plant"], "bunch_fresh_biomass")
+# layer2, min2, max2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted")
+# layer3, min3, max3 = scatter_layer(df_comparison["female"], "bunch_dry_biomass")
+# layer4, min4, max4 = scatter_layer(df_comparison["plant"], "total_n_bunches_harvested")
+# layer5, min5, max5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17")
+# layer6, min6, max6 = scatter_layer(df_comparison["female"], "avg_n_fruit_per_bunch")
+# layer7, min7, max7 = scatter_layer(df_comparison["female"], "fruit_dry_mass_per_bunch")
+# layer8, min8, max8 = scatter_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch")
+# layer9, min9, max9 = scatter_layer(df_comparison["female"], "bunch_dry_mass_per_bunch")
+# layer10, min10, max10 = scatter_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch")
+# layer11, min11, max11 = scatter_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch")
+# layer12, min12, max12 = scatter_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch")
+
+
+# p1 = layer1
+# p2 = layer2
+# p3 = layer3
+# p4 = layer4
+# p5 = layer5
+# p6 = layer6
+# p7 = layer7
+# p8 = layer8
+# p9 = layer9
+# p10 = layer10
+# p11 = layer11
+# p12 = layer12
+
+# fig_scatter = Figure(resolution=(2100, 1200))
+
+# scatter1 = draw!(fig_scatter[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
+
+# scatter2 = draw!(fig_scatter[1, 2], p2, axis=(; aspect=1, limits=((min2, max2), (min2, max2))))
+
+# scatter2 = draw!(fig_scatter[1, 3], p3, axis=(; aspect=1, limits=((min3, max3), (min3, max3))))
+
+# scatter4 = draw!(fig_scatter[2, 1], p4, axis=(; aspect=1, limits=((min4, max4), (min4, max4))))
+
+# scatter5 = draw!(fig_scatter[2, 2], p5, axis=(; aspect=1, limits=((min5, max5), (min5, max5))))
+
+# scatter6 = draw!(fig_scatter[2, 3], p6, axis=(; aspect=1, limits=((min6, max6), (min6, max6))))
+
+# scatter7 = draw!(fig_scatter[3, 1], p7, axis=(; aspect=1, limits=((min7, max7), (min7, max7))))
+
+# scatter8 = draw!(fig_scatter[3, 2], p8, axis=(; aspect=1, limits=((min8, max8), (min8, max8))))
+
+# scatter9 = draw!(fig_scatter[3, 3], p9, axis=(; aspect=1, limits=((min9, max9), (min9, max9))))
+
+# scatter10 = draw!(fig_scatter[4, 1], p10, axis=(; aspect=1, limits=((min10, max10), (min10, max10))))
+
+# scatter11 = draw!(fig_scatter[4, 2], p11, axis=(; aspect=1, limits=((min11, max11), (min11, max11))))
+
+# scatter12 = draw!(fig_scatter[4, 3], p12, axis=(; aspect=1, limits=((min12, max12), (min12, max12))))
+
+# legend!(
+#     fig_scatter[end+1, 1:3],
+#     scatter1;
+#     orientation=:horizontal,
+#     tellheight=true
+# )
+
+# fig_scatter
 
