@@ -6,34 +6,48 @@ using AlgebraOfGraphics, CairoMakie
 # Please run `1-CIGE_calibration_database.jl` first to generate the CIGE.csv file
 df_CIGE = CSV.read("2-results/calibration/CIGE/CIGE.csv", DataFrame)
 
-#Plot BunchMass
-p_bunchMass = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
-              mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
-              visual(Lines)
-fig_bunchMass = draw(p_bunchMass; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-mkpath("2-results/calibration/CIGE")
-save("2-results/calibration/CIGE/BunchMass.png", fig_bunchMass)
+const variable_labels = Dict(
+    "bunch_fresh_biomass" => "Bunch fresh biomass (kg plant⁻¹)",
+    "cumulated_n_leaf_emitted" => "Cumulative number of leaves emitted (plant⁻¹)",
+    "bunch_dry_biomass" => "Bunch dry biomass (kg plant⁻¹)",
+    "total_n_bunches_harvested" => "Total number of bunches harvested (plant⁻¹)",
+    "Leaf_area_17" => "Leaf area 17 (m² plant⁻¹)",
+    "avg_n_fruit_per_bunch" => "Average number of fruits (bunch⁻¹)",
+    "fruit_dry_mass_per_bunch" => "Fruit dry mass (kg bunch⁻¹)",
+    "fruit_fresh_mass_per_bunch" => "Fruit fresh mass (kg bunch⁻¹)",
+    "bunch_dry_mass_per_bunch" => "Bunch dry mass (kg bunch⁻¹)",
+    "bunch_fresh_mass_per_bunch" => "Bunch fresh mass (kg bunch⁻¹)",
+    "stalk_dry_biomass_per_bunch" => "Stalk dry biomass (kg bunch⁻¹)",
+    "stalk_fresh_biomass_per_bunch" => "Stalk fresh biomass (kg bunch⁻¹)",)
+
+#Plot FFB (kg plant⁻¹)
+p_FFB = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
+        mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+        visual(Lines)
+fig_FFB = draw(p_FFB; axis=(; xlabel="Month after planting", ylabel="FFB (kg plant⁻¹)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+mkpath("2-results/calibration/CIGE/Growth")
+save("2-results/calibration/CIGE/Growth/FFB (kg plant⁻¹).png", fig_FFB)
 
 #plot mescarp oil content
 p_DryMesocarpOilContent = data(filter(row -> !ismissing(row.DryMesocarpOilContent), df_CIGE)) *
                           mapping(:MAP, :DryMesocarpOilContent, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
                           visual(Lines)
-fig_oilmesocarp = draw(p_DryMesocarpOilContent; axis=(; xlabel="Month after planting", ylabel="Dry Mesocarp Oil Content (%)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/calibration/CIGE/DryMesocarpOilContent.png", fig_oilmesocarp)
+fig_oilmesocarp = draw(p_DryMesocarpOilContent; axis=(; xlabel="Month after planting", ylabel="Dry Mesocarp Oil Content (% bunch⁻¹)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+save("2-results/calibration/CIGE/Growth/DryMesocarpOilContent.png", fig_oilmesocarp)
 
 #plot mescarp water content
 p_MesocarpsSampleWC = data(filter(row -> !ismissing(row.MesocarpsSampleWC), df_CIGE)) * #!theres huge increase in PR
                       mapping(:MAP, :MesocarpsSampleWC, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
                       visual(Lines)
 
-fig_MesocarpsSampleWC = draw(p_MesocarpsSampleWC; axis=(; xlabel="Month after planting", ylabel="Mesocarp water content (%)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/calibration/CIGE/fig_MesocarpsSampleWC.png", fig_MesocarpsSampleWC)
+fig_MesocarpsSampleWC = draw(p_MesocarpsSampleWC; axis=(; xlabel="Month after planting", ylabel="Mesocarp water content (% bunch⁻¹)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+save("2-results/calibration/CIGE/Growth/MesocarpsSampleWC.png", fig_MesocarpsSampleWC)
 
-#plot number of fruit
-p_nFruit = data(filter(row -> !ismissing(row.n_of_fruit), df_CIGE)) * #!GE03 and GE16 not available in PR and TOWE
-           mapping(:MAP, :n_of_fruit, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
+#plot number average number of fruit per bunch
+p_nFruit = data(filter(row -> !ismissing(row.n_of_fruit_average), df_CIGE)) * #!GE03 and GE16 not available in PR and TOWE
+           mapping(:MAP, :n_of_fruit_average, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
            visual(Lines)
-fig_n_fruit = draw(p_nFruit; axis=(; xlabel="Month after planting", ylabel="Number of fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+fig_n_fruit = draw(p_nFruit; axis=(; xlabel="Month after planting", ylabel="Number of fruit (bunch⁻¹)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/n_of_fruit.png", fig_n_fruit)
 
 #plot number of bunch
@@ -43,41 +57,41 @@ p_nBunch = data(filter(row -> !ismissing(row.n_of_bunch), df_CIGE)) *
 fig_n_bunch = draw(p_nBunch; axis=(; xlabel="Month after planting", ylabel="Number of bunch"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/n_of_bunch.png", fig_n_bunch)
 
-#plot biomass fresh fruit
-p_biomass_fresh_fruit = data(filter(row -> !ismissing(row.biomass_fresh_fruit), df_CIGE)) *
-                        mapping(:MAP, :biomass_fresh_fruit, color=:TreeId, col=:IdGenotype, row=:Site) *
+#plot biomass fresh fruit per bunch
+p_biomass_fresh_fruit = data(filter(row -> !ismissing(row.fruit_fresh_mass_per_bunch), df_CIGE)) *
+                        mapping(:MAP, :fruit_fresh_mass_per_bunch, color=:TreeId, col=:IdGenotype, row=:Site) *
                         visual(Lines)
 fig_biomass_fresh_fruit = draw(p_biomass_fresh_fruit; axis=(; xlabel="Month after planting", ylabel="Biomass fresh fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/biomass_fresh_fruit.png", fig_biomass_fresh_fruit)
 
-#plot biomass dry fruit
-p_biomass_dry_fruit = data(filter(row -> !ismissing(row.biomass_dry_fruit), df_CIGE)) * #!GE03 is not available for all sites
-                      mapping(:MAP, :biomass_dry_fruit, color=:TreeId, col=:IdGenotype, row=:Site) *
+#plot biomass dry fruit per bunch
+p_biomass_dry_fruit = data(filter(row -> !ismissing(row.fruit_dry_mass_per_bunch), df_CIGE)) * #!GE03 is not available for all sites
+                      mapping(:MAP, :fruit_dry_mass_per_bunch, color=:TreeId, col=:IdGenotype, row=:Site) *
                       visual(Lines)
 fig_biomass_dry_fruit = draw(p_biomass_dry_fruit; axis=(; xlabel="Month after planting", ylabel="Biomass dry fruit"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/calibration/CIGE/biomass_dry_fruit.png", fig_biomass_dry_fruit)
+save("2-results/calibration/CIGE/fruit_dry_mass_per_bunch.png", fig_biomass_dry_fruit)
 
-#plot stalk dry biomass
-p_stalk_dry_biomass = data(filter(row -> !ismissing(row.stalk_dry_biomass), df_CIGE)) *#!GE03 is not available for all sites
-                      mapping(:MAP, :stalk_dry_biomass, color=:TreeId, col=:IdGenotype, row=:Site) *
+#plot stalk dry biomass per bunch
+p_stalk_dry_biomass = data(filter(row -> !ismissing(row.stalk_dry_biomass_per_bunch), df_CIGE)) *#!GE03 is not available for all sites
+                      mapping(:MAP, :stalk_dry_biomass_per_bunch, color=:TreeId, col=:IdGenotype, row=:Site) *
                       visual(Lines)
 fig_stalk_dry_biomass = draw(p_stalk_dry_biomass; axis=(; xlabel="Month after planting", ylabel="Stalk dry biomass"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/stalk_dry_biomass.png", fig_stalk_dry_biomass)
 
-#plot stalk fresh biomass
-p_stalk_fresh_biomass = data(filter(row -> !ismissing(row.stalk_fresh_biomass), df_CIGE)) * #!sudden increase in TOWE 2 tree
-                        mapping(:MAP, :stalk_fresh_biomass, color=:TreeId, col=:IdGenotype, row=:Site) *
+#plot stalk fresh biomass per bunch
+p_stalk_fresh_biomass = data(filter(row -> !ismissing(row.stalk_fresh_biomass_per_bunch), df_CIGE)) * #!sudden increase in TOWE 2 tree
+                        mapping(:MAP, :stalk_fresh_biomass_per_bunch, color=:TreeId, col=:IdGenotype, row=:Site) *
                         visual(Lines)
 #cek4 = filter(row ->  !ismissing(row.stalk_fresh_biomass) && row.stalk_fresh_biomass > 15 && row.Site == "TOWE" && row.IdGenotype == "GE12", df_CIGE)
 fig_stalk_fresh_biomass = draw(p_stalk_fresh_biomass; axis=(; xlabel="Month after planting", ylabel="Stalk fresh biomass"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/stalk_fresh_biomass.png", fig_stalk_fresh_biomass)
 
-#plot cumulated number of leaf emitted
-p_cum_n_Fruit = data(filter(row -> !ismissing(row.Cumulated_n_leaf_emitted), df_CIGE)) *
-                mapping(:MAP, :Cumulated_n_leaf_emitted, color=:TreeId, col=:IdGenotype, row=:Site) *
-                visual(Lines)
-fig_cum_n_fruit = draw(p_cum_n_Fruit; axis=(; xlabel="Month after planting", ylabel="Cumulated number of n leaf emitted"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
-save("2-results/calibration/CIGE/Cumulated_n_leaf_emitted.png", fig_cum_n_fruit)
+#plot cumulated number of leaf emitted 
+p_cum_n_Leaf = data(filter(row -> !ismissing(row.Cumulated_n_leaf_emitted), df_CIGE)) *
+               mapping(:MAP, :Cumulated_n_leaf_emitted, color=:TreeId, col=:IdGenotype, row=:Site) *
+               visual(Lines)
+fig_cum_n_Leaf = draw(p_cum_n_Leaf; axis=(; xlabel="Month after planting", ylabel="Cumulated number of n leaf emitted"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+save("2-results/calibration/CIGE/Cumulated_n_leaf_emitted.png", fig_cum_n_Leaf)
 
 #plot phyllocron days per MAP
 p_phyllochron_days_per_MAP = data(filter(row -> !ismissing(row.phyllochron_days_per_MAP), df_CIGE)) *
@@ -106,6 +120,9 @@ p_LeafArea = data(filter(row -> !ismissing(row.LeafArea), df_CIGE)) *
              visual(Lines)
 fig_LeafArea = draw(p_LeafArea; axis=(; xlabel="Month after planting", ylabel="Leaf Area"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
 save("2-results/calibration/CIGE/LeafArea.png", fig_LeafArea)
+
+#plot all plot together
+
 
 #leaf 
 
@@ -212,4 +229,73 @@ df_avg_bunch = combine(groupby(df_CIGE, [:Site]), :bunch_fresh_mass_total => (x 
 p_avg_bunch = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
               mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
               visual(Lines)
-fig_bunchMass = draw(p_bunchMass; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+fig_bunchMass = draw(p_avg_bunch; axis=(; xlabel="Month after planting", ylabel="Bunch Mass (kg)"), figure=(; size=(1000, 600)), legend=(; position=:bottom, labelsize=4, nbanks=3))
+
+#!plot the avergae bunch water content
+bunch_wc = combine(groupby(df_CIGE, [:Site]), :bunch_water_content => (x -> mean(skipmissing(x))) => :avg_bunch_water_content)
+p_bunch_wc = data(bunch_wc) * mapping(:Site, :avg_bunch_water_content) * visual(BarPlot)
+
+fig_bunch_wc = draw(
+    p_bunch_wc;
+    axis=(;
+        xlabel="Site",
+        ylabel="Average bunch water content (%)",
+        yticks=0:0.05:0.5
+    ),
+    figure=(; size=(600, 400)),
+    legend=(; position=:bottom)
+)
+save("2-results/calibration/1-report/5.avg_bunch_water_content.png", fig_bunch_wc)
+
+#plot all together the cige plant scale into one figure
+#! growth and production_cige
+fig_prod = Figure(resolution=(1800, 1200))
+prod1 = draw!(fig_prod[1, 1], p_FFB, axis=(; ylabel="FFB (kg plant⁻¹)", ylabelsize=20))
+prod2 = draw!(fig_prod[2, 1], p_nBunch, axis=(; ylabel="Number of bunch (# plant⁻¹)", ylabelsize=20))
+prod3 = draw!(fig_prod[3, 1], p_DryMesocarpOilContent, axis=(; ylabel="Dry mesocarp oil content (% plant⁻¹)", ylabelsize=20))
+legend!(
+    fig_prod[end+1, 1:1],
+    prod1;
+    orientation=:horizontal,
+    nbanks=4,           # number of columns
+    tellheight=true,
+    labelsize=10
+)
+fig_prod
+save("2-results/calibration/1-report/growth_production_combined.png", fig_prod)
+
+#! growth and bunch related
+fig_bunch = Figure(resolution=(1800, 2000))
+bunch1 = draw!(fig_bunch[1, 1], p_nFruit, axis=(; ylabel="Number of fruits (bunch⁻¹)", ylabelsize=20))
+bunch2 = draw!(fig_bunch[2, 1], p_biomass_fresh_fruit, axis=(; ylabel="Fruit fresh biomass (kg bunch⁻¹)", ylabelsize=20))
+bunch3 = draw!(fig_bunch[3, 1], p_biomass_dry_fruit, axis=(; ylabel="Fruit dry biomass (kg bunch⁻¹)", ylabelsize=20))
+bunch4 = draw!(fig_bunch[4, 1], p_stalk_dry_biomass, axis=(; ylabel="Stalk dry biomass (kg bunch⁻¹)", ylabelsize=20))
+bunch5 = draw!(fig_bunch[5, 1], p_stalk_fresh_biomass, axis=(; ylabel="Stalk fresh biomass (kg bunch⁻¹)", ylabelsize=20))
+legend!(
+    fig_bunch[end+1, 1:1],
+    bunch1;
+    orientation=:horizontal,
+    nbanks=4,           # number of columns
+    tellheight=true,
+    labelsize=10
+)
+fig_bunch
+save("2-results/calibration/1-report/growth_bunch_combined.png", fig_bunch)
+
+#!growth leaf phenology
+fig_leaf = Figure(resolution=(1800, 1000))
+leaf1 = draw!(fig_leaf[1, 1], p_cum_n_Leaf, axis=(; ylabel="Cumulated n of leaf emitted (plant⁻¹)", ylabelsize=20))
+leaf2 = draw!(fig_leaf[2, 1], p_LeafArea, axis=(; ylabel="Leaf area (m² plant⁻¹)", ylabelsize=20))
+# leaf3 = draw!(fig_leaf[3, 1], p_phyllochron_days_per_MAP, axis=(; ylabel="Time between new phyllochron (days)", ylabelsize=10))
+# leaf4 = draw!(fig_leaf[4, 1], p_day_flowering_MAP, axis=(; ylabel="Time between flowering and harvest (days)", ylabelsize=10))
+# leaf5 = draw!(fig_leaf[5, 1], p_days_harvest_MAP, axis=(; ylabel="Time between flowering and harvest (days)", ylabelsize=10))
+legend!(
+    fig_leaf[end+1, 1:1],
+    leaf1;
+    orientation=:horizontal,
+    nbanks=4,           # number of columns
+    tellheight=true,
+    labelsize=10
+)
+fig_leaf
+save("2-results/calibration/1-report/growth_leaves_combined.png", fig_leaf)

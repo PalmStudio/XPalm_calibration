@@ -36,7 +36,7 @@ function evaluate_generic_scatter(df, variable_name; ylabel="Simulation", xlabel
             aspect=1,
             limits=((min_axis, max_axis), (min_axis, max_axis))
         ),
-        figure=(; size=(1000, 600), title=title),
+        figure=(; size=(1000, 400), title=title),
         legend=(; position=:bottom, show=plot_legend)
     )
 

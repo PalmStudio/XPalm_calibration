@@ -65,7 +65,7 @@ out_eval.ffb.statistics
 #? Map dynamic plot into one figure
 const variable_labels = Dict(
     "bunch_fresh_biomass" => "FFB (kg plant⁻¹)",
-    "cumulated_n_leaf_emitted" => "Cumulative number of leaves emitted (plant⁻¹)",
+    "cumulated_n_leaf_emitted" => "Cumulative n of leaves emitted (plant⁻¹)",
     "bunch_dry_biomass" => "Bunch dry biomass (kg plant⁻¹)",
     "total_n_bunches_harvested" => "Total number of bunches harvested (plant⁻¹)",
     "Leaf_area_17" => "Leaf area 17 (m² plant⁻¹)",
@@ -81,10 +81,10 @@ const variable_labels = Dict(
 
 # Now call with labels dynamically:
 p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
-p2, xlabel2, ylabel2 = dynamic_layer(df_comparison["plant"], "cumulated_n_leaf_emitted", variable_labels)
+p2, xlabel2, ylabel2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted", variable_labels)
 p3, xlabel3, ylabel3 = dynamic_layer(df_comparison["female"], "bunch_dry_biomass", variable_labels)
 p4, xlabel4, ylabel4 = dynamic_layer(df_comparison["plant"], "total_n_bunches_harvested", variable_labels)
-p5, xlabel5, ylabel5 = dynamic_layer(df_comparison["leaf"], "Leaf_area_17", variable_labels)
+p5, xlabel5, ylabel5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17", variable_labels)
 p6, xlabel6, ylabel6 = dynamic_layer(df_comparison["female"], "avg_n_fruit_per_bunch", variable_labels)
 p7, xlabel7, ylabel7 = dynamic_layer(df_comparison["female"], "fruit_dry_mass_per_bunch", variable_labels)
 p8, xlabel8, ylabel8 = dynamic_layer(df_comparison["female"], "fruit_fresh_mass_per_bunch", variable_labels)
@@ -92,14 +92,42 @@ p9, xlabel9, ylabel9 = dynamic_layer(df_comparison["female"], "bunch_dry_mass_pe
 p10, xlabel10, ylabel10 = dynamic_layer(df_comparison["female"], "bunch_fresh_mass_per_bunch", variable_labels)
 p11, xlabel11, ylabel11 = dynamic_layer(df_comparison["female"], "stalk_dry_biomass_per_bunch", variable_labels)
 p12, xlabel12, ylabel12 = dynamic_layer(df_comparison["female"], "stalk_fresh_biomass_per_bunch", variable_labels)
+#fig bunch component
+#bunch, stalk and fruit dry weight
+fig_bunch_dry = Figure(resolution=(1800, 1200))
+subfig6 = draw!(fig_bunch_dry[1, 1:3], p6, axis=(; ylabel=ylabel6, ylabelsize=20))
+subfig9 = draw!(fig_bunch_dry[2, 1], p9, axis=(; ylabel=ylabel9, ylabelsize=20))
+subfig7 = draw!(fig_bunch_dry[2, 2], p7, axis=(; ylabel=ylabel7, ylabelsize=20))
+subfig11 = draw!(fig_bunch_dry[2, 3], p11, axis=(; ylabel=ylabel11, ylabelsize=20))
+legend!(
+    fig_bunch_dry[end+1, 1:3],
+    subfig9;
+    orientation=:horizontal,
+    tellheight=true, labelsize=20
+)
+fig_bunch_dry
+save("2-results/calibration/1-report/evaluation_bunch_dry_component.png", fig_bunch_dry)
+
+#scatter phyllocron vs leaf area 17
+layer2, min2, max2 = scatter_layer(df_comparison["plant"], "cumulated_n_leaf_emitted", variable_labels)
+layer5, min5, max5 = scatter_layer(df_comparison["leaf"], "Leaf_area_17", variable_labels)
+fig_pheno = Figure(resolution=(700, 750))
+subfig2 = draw!(fig_pheno[1, 1], layer2, axis=(; aspect=1, ylabelsize=16, limits=((min2, max2), (min2, max2))))
+subfig5 = draw!(fig_pheno[2, 1], layer5, axis=(; aspect=1, ylabelsize=16, limits=((min5, max5), (min5, max5))))
+legend!(
+    fig_pheno[end+1, 1],
+    subfig2;
+    orientation=:horizontal,
+    tellheight=true, labelsize=16
+)
+fig_pheno
+save("2-results/calibration/1-report/evaluation_pheno.png", fig_pheno)
 
 fig_bunch_component = Figure(resolution=(1800, 1500))
-subfig6 = draw!(fig_bunch_component[1, 1:2], p6, axis=(; ylabel=ylabel6, ylabelsize=20))
-subfig9 = draw!(fig_bunch_component[2, 1], p9, axis=(; ylabel=ylabel9, ylabelsize=20))
 subfig10 = draw!(fig_bunch_component[2, 2], p10, axis=(; ylabel=ylabel10, ylabelsize=20))
-subfig7 = draw!(fig_bunch_component[1, 3], p7, axis=(; ylabel=ylabel7, ylabelsize=20))
+
 subfig8 = draw!(fig_bunch_component[1, 4], p8, axis=(; ylabel=ylabel8, ylabelsize=20))
-subfig11 = draw!(fig_bunch_component[2, 3], p11, axis=(; ylabel=ylabel11, ylabelsize=20))
+
 subfig12 = draw!(fig_bunch_component[2, 4], p12, axis=(; ylabel=ylabel12, ylabelsize=20))
 legend!(
     fig_bunch_component[end+1, 1:4],
@@ -110,25 +138,16 @@ legend!(
 fig_bunch_component
 save("2-results/calibration/1-report/evaluation_bunch_component.png", fig_bunch_component)
 
-fig_pheno = Figure(resolution=(1800, 600))
-subfig2 = draw!(fig_pheno[1, 1], p2, axis=(; ylabel=ylabel2, ylabelsize=20))
-subfig5 = draw!(fig_pheno[1, 2], p5, axis=(; ylabel=ylabel5, ylabelsize=20))
-legend!(
-    fig_pheno[end+1, 1:2],
-    subfig2;
-    orientation=:horizontal,
-    tellheight=true, labelsize=20
-)
-fig_pheno
-save("2-results/calibration/1-report/evaluation_pheno.png", fig_pheno)
 
+
+#yield component
 fig_yield = Figure(resolution=(1500, 800))
-subfig1 = draw!(fig_yield[1, 1:2], p1, axis=(; ylabel=ylabel1, ylabelsize=16))
-subfig3 = draw!(fig_yield[2, 1], p3, axis=(; ylabel=ylabel3, ylabelsize=16))
-subfig4 = draw!(fig_yield[2, 2], p4, axis=(; ylabel=ylabel4, ylabelsize=16))
+subfig1 = draw!(fig_yield[1, 1], p1, axis=(; ylabel=ylabel1, ylabelsize=16))
+subfig3 = draw!(fig_yield[1, 2], p3, axis=(; ylabel=ylabel3, ylabelsize=16))
+#subfig4 = draw!(fig_yield[2, 1:2], p4, axis=(; ylabel=ylabel4, ylabelsize=16))
 legend!(
     fig_yield[end+1, 1:2],
-    subfig2;
+    subfig1;
     orientation=:horizontal,
     tellheight=true, labelsize=20
 )
@@ -139,24 +158,25 @@ save("2-results/calibration/1-report/evaluation_yield.png", fig_yield)
 
 # Create the layer plot
 p1, xlabel1, ylabel1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
-fig = Figure(resolution=(900, 600))
-figgrid = draw!(fig[1, 1], p1, axis=(; xlabel=xlabel1, ylabel=ylabel1, ylabelsize=20)) # Draw the AlgebraOfGraphics layer into the figure, with axis options
+fig = Figure(resolution=(1500, 800))
+figgrid = draw!(fig[1, 2], p1, axis=(; xlabel=xlabel1, ylabel=ylabel1, ylabelsize=20)) # Draw the AlgebraOfGraphics layer into the figure, with axis options
 for ax_entry in vec(figgrid)
     ax = ax_entry.axis
     y_min = ax.finallimits[].origin[2]
     y_max = ax.finallimits[].origin[2] + ax.finallimits[].widths[2]
     x1, x2 = 50, 100
     points = Point2f[(x1, y_min), (x2, y_min), (x2, y_max), (x1, y_max)]
-    poly!(ax, points, color=(:blue, 0.15), strokewidth=0)
+    poly!(ax, points, color=(:green, 0.15), strokewidth=0)
 end
+subfig3 = draw!(fig[1, 1], p3, axis=(; ylabel=ylabel3, ylabelsize=16))
 legend!(
-    fig[end+1, 1],
+    fig[end+1, 1:2],
     figgrid;
     orientation=:horizontal,
     tellheight=true, labelsize=16
 )
 display(fig)
-save("2-results/calibration/1-report/FFB_highligted.png", fig)
+save("2-results/calibration/1-report/FFB_vs_dry_highligted.png", fig)
 
 #? Compare simulations with different parameter values:
 params_defaults = YAML.load_file("1-code/5-calibration/xpalm_parameters_manual_calibration_1.yml")
