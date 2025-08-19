@@ -90,3 +90,22 @@ draw(p)
 p = data(dfs_female_at_harvest) *
     mapping(:MAP, :final_potential_biomass_oil_fruit => "Potential fruit oil biomass (g fruit⁻¹)", row=:Site) *
     visual(Lines)
+
+#plot number of ftsw 
+
+dfs_soil = CSV.read("2-results/calibration/Simulation/dfs_soil.csv", missingstring=["NA", "NaN"], DataFrame)
+threshold_ftsw = 0.3
+df_count_ftsw_stress = combine(groupby(dfs_soil, [:Site, :MAP]), :ftsw => (x -> sum(0.0 .< x .< threshold_ftsw)) => :n_ftsw)
+plt_ftsw = data(df_count_ftsw_stress) *
+           mapping(:MAP, :n_ftsw => "Number of FTSW (days < 0.3)", color=:Site) *
+           visual(Lines)
+fig_n_ftsw = draw(plt_ftsw)
+save("2-results/calibration/1-Report/n_ftsw_MAP.png", fig_n_ftsw) #dynamic per MAP
+
+#total among sites
+df_total_ftsw = combine(groupby(df_count_ftsw_stress, :Site), :n_ftsw => sum => :total_n_ftsw)
+plt_ftsw_total = data(df_total_ftsw) *
+                 mapping(:Site, :total_n_ftsw => "Total FTSW (days < 0.3)", color=:Site) *
+                 visual(BarPlot)  # <- use CairoMakie.Bar explicitly
+fig_total_ftsw = draw(plt_ftsw_total)
+save("2-results/calibration/1-Report/n_ftsw_total_per_site.png", fig_total_ftsw)
