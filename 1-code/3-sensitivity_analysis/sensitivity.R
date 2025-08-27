@@ -96,7 +96,7 @@ df_10$var_label <- factor(df_10$var_label, levels = short_labels)
 # Plot with rectangular horizontal tiles
 map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_index)) +
     geom_tile(color = "white", width = 1.0, height = 0.4) +
-    geom_text(aes(label = round(composite_index, 2)), size = 3) +
+    geom_text(aes(label = round(composite_index, 2)), size = 5) +
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
@@ -108,23 +108,23 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
         title = "Sensitive parameters"
     ) +
     facet_wrap(~site, scales = "free_y") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
         axis.text.x = element_text(size = 10, angle = 0, vjust = 0.5),
-        axis.text.y = element_text(size = 5),
+        axis.text.y = element_text(size = 11, face = "bold", hjust = 1),
         panel.grid = element_blank(),
-        strip.text = element_text(face = "bold", size = 12)
+        strip.text = element_text(face = "bold", size = 14)
     )
 
 # Save the fixed
 ggsave(
     # filename = "2-results/sensitivity/heatmap_average_leaf_area_edit_presco.png",
-    filename = "2-results/sensitivity//heatmap/1.heatmap_average_yield_in_range.png",
+    filename = "2-results/sensitivity/heatmap/1.heatmap_average_yield_in_range.png",
     plot = map_all,
     bg = "white",
-    width = 12,
-    height = 6,
-    dpi = 300
+    width = 20,
+    height = 10,
+    dpi = 600
 )
 
 # Cumulated yield
@@ -188,7 +188,7 @@ map_all <- ggplot(df_10_cumulated_yield, aes(x = var_label, y = parameter, fill 
 
 # Save the fixed
 ggsave(
-    filename = "2-results/sensitivity//heatmap/1.heatmap_cumulated yield.png",
+    filename = "2-results/sensitivity/heatmap/1.heatmap_cumulated yield.png",
     plot = map_all,
     bg = "white",
     width = 12,
@@ -241,7 +241,7 @@ df_10$var_label <- factor(df_10$var_label, levels = short_labels)
 # Plot with rectangular horizontal tiles
 map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_index)) +
     geom_tile(color = "white", width = 1.0, height = 0.4) +
-    geom_text(aes(label = round(composite_index, 2)), size = 3) +
+    geom_text(aes(label = round(composite_index, 2)), size = 5) +
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
@@ -253,23 +253,23 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
         title = "Most sensitive parameters among sites"
     ) +
     facet_wrap(~site, scales = "free_y") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
-        axis.text.x = element_text(size = 10, angle = 0, vjust = 0.5),
-        axis.text.y = element_text(size = 5),
+        axis.text.x = element_text(size = 11, angle = 0, vjust = 0.5),
+        axis.text.y = element_text(size = 11, face = "bold", hjust = 1),
         panel.grid = element_blank(),
-        strip.text = element_text(face = "bold", size = 12)
+        strip.text = element_text(face = "bold", size = 14)
     )
 
 # Save the fixed
 ggsave(
     # filename = "2-results/sensitivity/heatmap_average_leaf_area_edit_presco.png",
-    filename = "2-results/sensitivity//heatmap/2.heatmap_average_leaf_area.png",
+    filename = "2-results/sensitivity/heatmap/2.heatmap_average_leaf_area.png",
     plot = map_all,
     bg = "white",
-    width = 12,
-    height = 6,
-    dpi = 300
+    width = 20,
+    height = 10,
+    dpi = 600
 )
 
 # transpiration
@@ -316,7 +316,7 @@ df_10$var_label <- factor(df_10$var_label, levels = short_labels)
 # Plot with rectangular horizontal tiles
 map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_index)) +
     geom_tile(color = "white", width = 1.0, height = 0.4) +
-    geom_text(aes(label = round(composite_index, 2)), size = 3) +
+    geom_text(aes(label = round(composite_index, 2)), size = 5) +
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
@@ -328,23 +328,23 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
         title = "Sensitive parameters"
     ) +
     facet_wrap(~site, scales = "free_y") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
-        axis.text.x = element_text(size = 10, angle = 0, vjust = 0.5),
-        axis.text.y = element_text(size = 5),
+        axis.text.x = element_text(size = 11, angle = 0, vjust = 0.5),
+        axis.text.y = element_text(size = 11, face = "bold", hjust = 1),
         panel.grid = element_blank(),
-        strip.text = element_text(face = "bold", size = 12)
+        strip.text = element_text(face = "bold", size = 14)
     )
 
 # Save the fixed
 ggsave(
     # filename = "2-results/sensitivity/heatmap_average_leaf_area_edit_presco.png",
-    filename = "2-results/sensitivity//heatmap/3.transpiration.png",
+    filename = "2-results/sensitivity/heatmap/3.transpiration.png",
     plot = map_all,
     bg = "white",
-    width = 12,
-    height = 6,
-    dpi = 300
+    width = 20,
+    height = 10,
+    dpi = 600
 )
 
 
@@ -392,7 +392,7 @@ df_10$var_label <- factor(df_10$var_label, levels = short_labels)
 # Plot with rectangular horizontal tiles
 map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_index)) +
     geom_tile(color = "white", width = 1.0, height = 0.4) +
-    geom_text(aes(label = round(composite_index, 2)), size = 3) +
+    geom_text(aes(label = round(composite_index, 2)), size = 5) +
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
@@ -404,12 +404,12 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
         title = "Sensitive parameters"
     ) +
     facet_wrap(~site, scales = "free_y") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
-        axis.text.x = element_text(size = 10, angle = 0, vjust = 0.5),
-        axis.text.y = element_text(size = 5),
+        axis.text.x = element_text(size = 11, angle = 0, vjust = 0.5),
+        axis.text.y = element_text(size = 11, face = "bold", hjust = 1),
         panel.grid = element_blank(),
-        strip.text = element_text(face = "bold", size = 12)
+        strip.text = element_text(face = "bold", size = 14)
     )
 
 # Save the fixed
@@ -418,9 +418,9 @@ ggsave(
     filename = "2-results/sensitivity//heatmap/3. Soil water.png",
     plot = map_all,
     bg = "white",
-    width = 15,
-    height = 6,
-    dpi = 300
+    width = 20,
+    height = 10,
+    dpi = 600
 )
 
 
@@ -468,7 +468,7 @@ df_10$var_label <- factor(df_10$var_label, levels = short_labels)
 # Plot with rectangular horizontal tiles
 map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_index)) +
     geom_tile(color = "white", width = 1.0, height = 0.4) +
-    geom_text(aes(label = round(composite_index, 2)), size = 3) +
+    geom_text(aes(label = round(composite_index, 2)), size = 5) +
     scale_fill_gradient2(
         low = "blue", mid = "white", high = "darkred",
         midpoint = 0.5, limits = c(0, 1),
@@ -480,12 +480,12 @@ map_all <- ggplot(df_10, aes(x = var_label, y = parameter, fill = composite_inde
         title = "Sensitive parameters"
     ) +
     facet_wrap(~site, scales = "free_y") +
-    theme_minimal(base_size = 11) +
+    theme_minimal(base_size = 12) +
     theme(
-        axis.text.x = element_text(size = 10, angle = 0, vjust = 0.5),
-        axis.text.y = element_text(size = 5),
+        axis.text.x = element_text(size = 11, angle = 0, vjust = 0.5),
+        axis.text.y = element_text(size = 11, face = "bold", hjust = 1),
         panel.grid = element_blank(),
-        strip.text = element_text(face = "bold", size = 12)
+        strip.text = element_text(face = "bold", size = 14)
     )
 
 # Save the fixed
@@ -494,7 +494,7 @@ ggsave(
     filename = "2-results/sensitivity//heatmap/4.number female and male.png",
     plot = map_all,
     bg = "white",
-    width = 15,
-    height = 6,
-    dpi = 300
+    width = 20,
+    height = 10,
+    dpi = 600
 )

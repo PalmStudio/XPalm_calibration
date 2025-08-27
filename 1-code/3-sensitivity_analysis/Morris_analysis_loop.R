@@ -63,15 +63,21 @@ for (variables in vars_list) {
   data_plot <- all_res %>% filter(var == variables)
 
   p <- ggplot(data_plot, aes(x = mu_star, y = sd, color = category)) +
-    geom_point() +
+    geom_point(size = 3) +
     geom_text_repel(
       aes(label = params),
-      size = 3,
+      size = 7,
       data = data_plot %>% filter(mu_star > 0.0)
     ) +
     facet_grid(. ~ Site) +
     labs(x = " µ ", y = " σ ", title = paste("Sensitivity Analysis Results for", variables)) +
-    theme(legend.position = "bottom")
+    theme(
+      legend.position = "bottom",
+      plot.title = element_text(size = 20, face = "bold"),
+      legend.title = element_text(size = 16),
+      legend.text = element_text(size = 14),
+      strip.text = element_text(size = 16, face = "bold")
+    )
 
   ggsave(
     filename = paste0("2-results/sensitivity/loop/plot_", variables, ".png"), # loop5 is all the climate is replace by following month, loop is the original
