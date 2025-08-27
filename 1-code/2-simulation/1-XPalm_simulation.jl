@@ -115,7 +115,10 @@ dfs_female_MAP[!, :fruit_fresh_mass_per_bunch] = (dfs_female_MAP.fruit_dry_mass_
 #     :biomass_fruit_harvested => (x -> sum(filter(x -> x > 0.0, x)) * 1e-3) => :biomass_fruit_harvested_MAP, #change to kg and total it (?)
 # )
 
+#!Soil
+dfs_soil = vcat([s["Soil"] for s in simulations]...)
 
 CSV.write("2-results/calibration/Simulation/dfs_leaf_MAP.csv", dfs_leaf_MAP)
 CSV.write("2-results/calibration/Simulation/dfs_plant_MAP.csv", dfs_plant_MAP)
 CSV.write("2-results/calibration/Simulation/dfs_female.csv", dfs_female)
+CSV.write("2-results/calibration/Simulation/dfs_soil.csv", dfs_soil)
