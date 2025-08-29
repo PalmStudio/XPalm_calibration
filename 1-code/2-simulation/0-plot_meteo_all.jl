@@ -91,8 +91,10 @@ for (sitename, df) in sites_comb
     temp_df.site = fill(sitename, nrow(temp_df))
     df_meteo_long_comb = vcat(df_meteo_long_comb, temp_df; cols=:union)
 end
+CSV.write("2-results/meteorology/meteo_combined.csv", df_meteo_long_comb)
 
 #plot Temperature
+df_meteo_long_comb = CSV.read("2-results/meteorology/meteo_combined.csv", DataFrame)
 temp_vars = [:T, :Tmin, :Tmax]
 temp_stacked_comb = stack(df_meteo_long_comb, temp_vars; variable_name=:variable, value_name=:value)
 temp_stacked_comb.site_group = ifelse.(temp_stacked_comb.site .== "nursery", "nursery", string.(temp_stacked_comb.site))
@@ -175,7 +177,8 @@ for (i, var) in enumerate(climate_vars)
             title=i == 1 ? site : ""
         )
 
-        lines!(ax, df_plot.MAP, df_plot.value, color=colors[site])
+        lines!(ax, df_plot.MAP, df_plot.value, color=colors[site],
+            linewidth=2.5)
         push!(axes_per_var[i], ax)
     end
 end
@@ -194,7 +197,43 @@ Legend(fig[end+1, 1:length(sites)],
 fig
 save("2-results/meteorology/plot_climate_all.png", fig, px_per_unit=3)
 
-#make a boxplot for the climate variation
+
+#! make a boxplot for the climate variation
+df_meteo_long_comb = CSV.read("2-results/meteorology/meteo_combined.csv", DataFrame)
+select!(df_meteo_long_comb, [:site, :MAP, :Precipitations, :Rg, :Rh, :T, :Wind])
+filter!(x -> x.MAP >= 0 && x.MAP <= 100, df_meteo_long_comb)
+
+avg_by_MAP = combine(groupby(df_meteo_long_comb, [:site, :MAP]),
+    :Precipitations => mean => :Precipitations,
+    :Rg => mean => :Rg,
+    :Rh => mean => :Rh,
+    :T => mean => :T,
+    :Wind => mean => :Wind
+)
+
+using CategoricalArrays
+
+# Convert site to categorical for grouping
+avg_by_MAP.site = categorical(avg_by_MAP.site)
+
+fig = Figure(resolution=(900, 700))
+
+variables = [:Precipitations, :Rg, :Rh, :T, :Wind]
+n_vars = length(variables)
+
+for (i, var) in enumerate(variables)
+    ax = Axis(fig[i, 1],
+        xlabel="Site",
+        ylabel="Average Value",
+        title=string(var),
+        xticks=:auto
+    )
+    # boxplot with groups by site, x = site, y = values for variable `var`
+    boxplot!(ax, avg_by_MAP.site, avg_by_MAP[!, var])
+end
+
+fig
+
 plt_facet = data(climate_stacked_comb) *
             mapping(:site, :value, color=:site, row=:variable) *
             visual(BoxPlot)
