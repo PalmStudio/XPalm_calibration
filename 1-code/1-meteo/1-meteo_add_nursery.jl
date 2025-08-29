@@ -27,6 +27,7 @@ meteo_nursery = DataFrame(
 nursery_days = Int(round(1.5 * 365))  # 548
 meteo_nursery = repeat(meteo_nursery, nursery_days)
 meteo_nursery.period = fill("Nursery", nrow(meteo_nursery))
+#meteo_nursery.Precipitations .= meteo_nursery.Precipitations .* 10
 CSV.write("2-results/template_meteo_nursery.csv", meteo_nursery)
 
 # 2. Set the planting date
