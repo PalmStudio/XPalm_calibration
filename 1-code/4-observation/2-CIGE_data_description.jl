@@ -20,6 +20,19 @@ const variable_labels = Dict(
     "stalk_dry_biomass_per_bunch" => "Stalk dry biomass (kg bunch⁻¹)",
     "stalk_fresh_biomass_per_bunch" => "Stalk fresh biomass (kg bunch⁻¹)",)
 
+#plot cumulated FFB MAP 0 - 100
+
+df_CIGE_species = combine( #here is we dont consider about the genotype thats why mostly we use the mean from all treeId to get the value of each tree
+    groupby(df_CIGE, [:Site, :MAP]),
+    :bunch_fresh_mass_total => (x -> fn_no_missings(x, mean)) => :bunch_fresh_biomass,) # in kg, #!FFB
+FFB_0_to_100 = filter(row -> (0 <= row.MAP <= 100) && !ismissing(row.bunch_fresh_biomass), df_CIGE_species)[:, [:MAP, :Site, :bunch_fresh_biomass]]
+transform!(groupby(FFB_0_to_100, :Site), :bunch_fresh_biomass => (x -> cumsum(x) .- first(cumsum(x))) => :cumulated_FFB)
+p_ffb_cum = data(FFB_0_to_100) *
+            mapping(:MAP, :cumulated_FFB => "Cumulated FFB (kg plant⁻¹)", color=:Site) *
+            visual(Lines)
+fig_FFB_cum = draw(p_ffb_cum; axis=(; xlabel="Month after planting"))
+save("2-results/calibration/CIGE/Growth/FFB_cum (kg plant⁻¹).png", fig_FFB_cum)
+
 #Plot FFB (kg plant⁻¹)
 p_FFB = data(filter(row -> !ismissing(row.bunch_fresh_mass_total), df_CIGE)) *
         mapping(:MAP, :bunch_fresh_mass_total, color=:TreeId, col=:IdGenotype, row=:Site, group=:TreeId) *
@@ -299,3 +312,18 @@ legend!(
 )
 fig_leaf
 save("2-results/calibration/1-report/growth_leaves_combined.png", fig_leaf)
+
+#!comparison between 2 scale
+fig_scale = Figure(resolution=(1800, 1000))
+prod1 = draw!(fig_scale[1, 1], p_FFB, axis=(; ylabel="FFB (kg plant⁻¹)", ylabelsize=20))
+bunch1 = draw!(fig_scale[2, 1], p_nFruit, axis=(; ylabel="Number of fruits (bunch⁻¹)", ylabelsize=20))
+legend!(
+    fig_scale[end+1, 1:1],
+    prod1;
+    orientation=:horizontal,
+    nbanks=4,           # number of columns
+    tellheight=true,
+    labelsize=10
+)
+fig_scale
+save("2-results/calibration/1-report/FFB-nFruit.png", fig_scale)
