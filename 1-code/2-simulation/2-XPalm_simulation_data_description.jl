@@ -94,7 +94,7 @@ p = data(dfs_female_at_harvest) *
 #plot number of ftsw 
 
 dfs_soil = CSV.read("2-results/calibration/Simulation/dfs_soil.csv", missingstring=["NA", "NaN"], DataFrame)
-plt_ftsw = data(filtered_ftsw) *
+plt_ftsw = data(dfs_soil) *
            mapping(:MAP, :ftsw => "FTSW", color=:Site) *
            visual(Lines)
 fig_ftsw = draw(plt_ftsw)
@@ -103,10 +103,12 @@ save("2-results/calibration/1-Report/ftsw_MAP.png", fig_ftsw) #dynamic per MAP
 #total among sites
 threshold_ftsw = 0.3
 filtered_ftsw = filter(row -> (row.MAP >= -18 && row.MAP <= 130), dfs_soil)
-df_count_ftsw_stress = combine(groupby(filtered_ftsw, [:Site, :MAP]), :ftsw => (x -> sum((0.0 .< x) .& (x .< threshold_ftsw))) => :n_ftsw)
+df_count_ftsw_stress = combine(groupby(filtered_ftsw, [:Site, :MAP]), :ftsw => (x -> sum((0.0 .<= x) .& (x .< threshold_ftsw))) => :n_ftsw)
 df_total_ftsw = combine(groupby(df_count_ftsw_stress, :Site), :n_ftsw => sum => :total_n_ftsw)
 plt_ftsw_total = data(df_total_ftsw) *
-                 mapping(:Site, :total_n_ftsw => "Total number of days with FTSW < 0.3 from -18 to 130 MAP", color=:Site) *
+                 mapping(:Site, :total_n_ftsw => "#days", color=:Site) *
                  visual(BarPlot)
-fig_total_ftsw = draw(plt_ftsw_total)
+fig_total_ftsw = draw(plt_ftsw_total; axis=(title="Total number of days with FTSW < $threshold_ftsw [MAP -18 - 130]",)
+)
+
 save("2-results/calibration/1-Report/n_ftsw_total_per_site.png", fig_total_ftsw)
