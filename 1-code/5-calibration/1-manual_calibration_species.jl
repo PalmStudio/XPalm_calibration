@@ -1,7 +1,7 @@
 # This is a script to manually calibrate the XPalm model at the species level using CIGE data
 using CSV, DataFrames, Dates
 using Statistics
-using AlgebraOfGraphics, CairoMakie
+using AlgebraOfGraphics, CairoMakie, CategoricalArrays
 using YAML
 using XPalmCalibration
 
@@ -187,7 +187,7 @@ param_changed["reproduction"]["yield_formation"]["potential_fruit_number_at_matu
 
 df_comparison = run_simulation_all_cige_by_map(df_CIGE_species, [params_defaults, param_changed], meteos, out_vars)
 # Evaluate the simulation against CIGE data
-out_eval2 = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm2")
+out_eval1 = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm_1")
 
 #? Compare simulations with a reference simulation:
 reference_parameters = YAML.load_file("1-code/5-calibration/xpalm_reference.yml")
@@ -200,6 +200,46 @@ df_comparison = run_simulation_all_cige_by_map(reference_simulation, df_CIGE_spe
 # Evaluate the simulation against CIGE data
 out_eval_2 = evaluate(df_comparison["plant"], df_comparison["female"], df_comparison["leaf"], "2-results/calibration/XPalm")
 
+# Extract female data
+df_female = df_comparison["female"]
+df_plot = select(df_female, :Site, :MAP,
+    :avg_n_fruit_per_bunch_obs,
+    :avg_n_fruit_per_bunch_sim_reference_simulation,
+    Symbol("avg_n_fruit_per_bunch_sim_potential_fruit_number_at_maturity: 3000")
+)
+
+# Convert to long format
+df_long = stack(df_plot, Not([:Site, :MAP]), variable_name=:type, value_name=:value)
+
+# Rename the types for legend clarity
+rename_dict = Dict(
+    "avg_n_fruit_per_bunch_obs" => "Observed",
+    "avg_n_fruit_per_bunch_sim_reference_simulation" => "potential_fruit_number_at_maturity: 2000",
+    "avg_n_fruit_per_bunch_sim_potential_fruit_number_at_maturity: 3000" => "potential_fruit_number_at_maturity: 3000"
+)
+
+df_long.type = CategoricalArray([rename_dict[string(t)] for t in df_long.type])
+
+# Determine the factor levels order
+levels_order = levels(df_long.type)
+
+# Define colors in the same order as levels
+colors_vector = [
+    :blue,    # Observed
+    :orange,  # potential_fruit_number_at_maturity: 2000
+    :green    # potential_fruit_number_at_maturity: 3000
+]
+
+# Create the plot
+p = data(df_long) * mapping(:MAP, :value, row=:Site, color=:type) * visual(Lines)
+
+# Draw with scales for color (vector order matches levels)
+fig = draw(p, scales(Color=(; palette=colors_vector)),
+    axis=(; xlabel="Month after planting", ylabel="avg_n_fruit_per_bunch (bunch⁻¹ MAP⁻¹)"),
+    figure=(; size=(1000, 600)),
+    legend=(; position=:bottom)
+)
+save("2-results/calibration/1-report/evaluation_n_fruit_per_bunch_comparison.png", fig)
 
 # For plotting several variables in the same plot:
 # var1_df = XPalmCalibration.rename_variables_names(df_comparison["plant"], "bunch_fresh_biomass")
@@ -269,9 +309,25 @@ scatter_n_fruit_bunch
 save("2-results/calibration/1-report/2.bunch_n_fruit.png", scatter_n_fruit_bunch)
 
 
-#scatter FFB
+#plot scatter FFB
 fig_FFB = Figure(resolution=(1050, 600))
 layer1, min1, max1 = scatter_SITE(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
+p1 = layer1
+scatter1 = draw!(fig_FFB[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
+legend!(
+    fig_FFB[end+1, 1:1],
+    scatter1;
+    orientation=:horizontal,
+    tellheight=true
+)
+
+fig_FFB
+save("2-results/calibration/1-report/3.scatter_FFB_by_site.png", fig_FFB)
+
+
+#plot lines FFB
+fig_FFB = Figure(resolution=(1050, 600))
+layer1, min1, max1 = dynamic_layer(df_comparison["plant"], "bunch_fresh_biomass", variable_labels)
 p1 = layer1
 scatter1 = draw!(fig_FFB[1, 1], p1, axis=(; aspect=1, limits=((min1, max1), (min1, max1))))
 legend!(
