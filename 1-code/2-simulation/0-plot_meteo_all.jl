@@ -93,6 +93,39 @@ for (sitename, df) in sites_comb
 end
 CSV.write("2-results/meteorology/meteo_combined.csv", df_meteo_long_comb)
 
+# aggregate total rainfall per MAP per site
+filter!(row -> row.MAP >= 0 && row.MAP <= 130, df_meteo_long_comb)
+df_rain = combine(groupby(df_meteo_long_comb, [:site]),
+    :Precipitations => sum => :total_rainfall)
+
+plt_rain = data(df_rain) *
+           mapping(:site, :total_rainfall => "Rainfall (mm)", color=:site) *
+           visual(BarPlot)
+#fig_total_rain = draw(plt_rain; axis=(title="Total rainfall [MAP 0 - 130]",))
+
+
+df_meteo_long_comb.T_round = round.(df_meteo_long_comb.Tmax, digits=1)
+df_temp_days = combine(groupby(df_meteo_long_comb, [:site, :T_round]), nrow => :n_days)
+rename!(df_temp_days, :T_round => :temperature)
+plt_days_temp = data(df_temp_days) *
+                mapping(:temperature, :n_days, color=:site, row=:site) *
+                visual(BarPlot)
+#fig_days_temp = draw(plt_days_temp; figure=(; title="Daily maximum temperature [MAP 0 - 130]"), axis=(; ylabel="Days (#)"))
+
+fig_temp = Figure(resolution=(1800, 900))
+subfig1 = draw!(fig_temp[1, 1], plt_days_temp, axis=(; ylabel="Days (#)", xticklabelsize=23, yticklabelsize=23, xlabel="Temperature (°C)", xlabelsize=23, ylabelsize=23, titlesize=25, title="Daily maximum temperature [MAP 0 - 130]"))
+subfig2 = draw!(fig_temp[1, 2], plt_rain, axis=(; ylabel="Rainfall (mm)", xticklabelsize=23, yticklabelsize=23, xlabel="Site", xlabelsize=23, ylabelsize=23, titlesize=25, title="Total rainfall [MAP 0 - 130]"))
+legend!(
+    fig_temp[end+1, 1:2],
+    subfig2;
+    orientation=:horizontal,
+    tellheight=true, labelsize=25
+)
+
+fig_temp
+
+save("2-results/meteorology/report_temperature.png", fig_temp)
+
 #plot Temperature
 df_meteo_long_comb = CSV.read("2-results/meteorology/meteo_combined.csv", DataFrame)
 temp_vars = [:T, :Tmin, :Tmax]
